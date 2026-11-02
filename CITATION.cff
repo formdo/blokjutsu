@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use Blokjutsu, please cite it and the MOSS-Image model it runs."
+title: Blokjutsu
+version: 1.0.0rc1
+license: Apache-2.0
+authors:
+  - family-names: Carpenter
+    given-names: Bob
+repository-code: https://github.com/formdo/blokjutsu
+references:
+  - type: software
+    title: MOSS-Image
+    authors:
+      - name: OpenMOSS Team
+    year: 2026
+    url: https://github.com/OpenMOSS/MOSS-Image
+    license: Apache-2.0
+  - type: report
+    title: MOSS-Image Technical Report
+    authors:
+      - name: MOSI.AI
+    year: 2026
+    url: https://arxiv.org/abs/2610.23374

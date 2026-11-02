@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "model_repo": "OpenMOSS-Team/MOSS-Image-SFT",
+  "model": "MOSS-Image-SFT",
+  "parameters": {
+    "prompt": "{\"summary\": {\"meta\": [\"photo\"], \"canvas\": \"single\", \"caption\": \"A retro diner counter in morning light with three glass bowls of ice cream in front of a chalkboard menu that reads TODAY'S FLAVORS.\"}, \"items\": [{\"label\": \"text\", \"caption\": \"Hand-lettered white chalk capitals across the top of a black chalkboard.\", \"text\": \"TODAY'S FLAVORS\", \"bbox\": [-544, -640, -400, 640]}, {\"label\": \"object\", \"caption\": \"A glass bowl of chocolate ice cream with a folded card reading CHOCOLATE.\", \"bbox\": [-96, -816, 496, -304]}, {\"label\": \"object\", \"caption\": \"A glass bowl of black cherry ice cream with a folded card reading CHERRY.\", \"bbox\": [-96, -256, 496, 256]}, {\"label\": \"object\", \"caption\": \"A glass bowl of vanilla ice cream with a folded card reading VANILLA.\", \"bbox\": [-96, 304, 496, 816]}], \"bbox_coord_space\": \"abs_centralized\", \"bbox_format\": \"yxyx\"}",
+    "negative_prompt": "",
+    "height": 1184,
+    "width": 1776,
+    "steps": 50,
+    "cfg": 5,
+    "shift": 5,
+    "num_images": 1,
+    "seed": 3072627948,
+    "uncond_skip_layers": "22",
+    "slg_layers": "",
+    "slg_scale": 0,
+    "slg_start": 0,
+    "slg_stop": 1,
+    "max_sequence_length": 4096,
+    "offload": "none",
+    "compile_transformer": false
+  },
+  "sampler": "Euler",
+  "image": "image.png"
+}
