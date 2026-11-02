@@ -1,0 +1,21 @@
+title: Blokjutsu
+description: A local, permissively licensed, open-source Mac app for generating and editing images from text prompts with the open-weight MOSS-Image model.
+remote_theme: just-the-docs/just-the-docs@v0.10.0
+plugins:
+  - jekyll-remote-theme
+  - jekyll-relative-links
+logo: /assets/icon.png
+favicon_ico: /assets/icon.png
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+aux_links:
+  "Download": "/blokjutsu/install.html"
+  "GitHub": "https://github.com/formdo/blokjutsu"
+aux_links_new_tab: false
+footer_content: >-
+  Blokjutsu is an independent app for <a href="https://github.com/OpenMOSS/MOSS-Image">MOSS-Image</a> by the
+  OpenMOSS Team and MOSI.AI. Apache License 2.0.
+baseurl: /blokjutsu
+exclude:
+  - README.md

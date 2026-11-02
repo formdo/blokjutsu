@@ -1,0 +1,27 @@
+Blokjutsu
+Copyright 2026 Bob Carpenter
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product is a desktop front end for MOSS-Image, developed by the OpenMOSS Team / MOSI.AI:
+  https://github.com/OpenMOSS/MOSS-Image
+  MOSS-Image Technical Report, https://arxiv.org/abs/2610.23374
+MOSS-Image's pipeline code and model weights are licensed under the Apache License, Version 2.0.
+
+blokjutsu/moss_image.py is MOSS-Image's pipeline code (pipeline_moss_image.py from OpenMOSS-Team/MOSS-Image-SFT),
+copied unchanged; Copyright the OpenMOSS Team / MOSI.AI. The model weights are not included; the app downloads
+them from Hugging Face when the user asks it to.
+
+The captioning instructions in blokjutsu/describe.py are adapted from MOSS-Image's USERGUIDE.md (Apache License,
+Version 2.0); the changes are described in that file.
+
+blokjutsu/moss_forward.py is adapted from the MOSS-Image transformer's forward pass (Apache License, Version
+2.0); the changes are described at the top of that file.
+
+Models used at run time (downloaded on request, not included):
+  MOSS-Image-SFT and MOSS-Image-Base, OpenMOSS Team (Apache-2.0)
+  Qwen3.5-9B, Qwen Team, Alibaba Cloud (Apache-2.0): MOSS-Image's text encoder; Blokjutsu also downloads its
+    output layer (lm_head) from Qwen/Qwen3.5-9B for Describe image and Enhance prompt
+  FLUX.2 VAE, Black Forest Labs (Apache-2.0)
+
+Third-party Python libraries are installed separately and keep their own licenses; see README.md.

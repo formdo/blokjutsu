@@ -1,0 +1,13 @@
+table.examples th,
+table.examples td {
+  min-width: 0;
+  padding: 2px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+table.examples img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
