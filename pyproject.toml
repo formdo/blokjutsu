@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "blokjutsu"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 description = "A local, permissively licensed, open-source Mac app for generating and editing images from text prompts with the open-weight MOSS-Image model"
 readme = "README.md"
 license = "Apache-2.0"

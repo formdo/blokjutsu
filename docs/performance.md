@@ -21,8 +21,10 @@ Measured on a Mac Studio with an M3 Ultra (28-core CPU, 60-core GPU) and 256 GB 
 | 1408 × 1408 | 2.0 | 4:50 | 12:05 |
 | 2048 × 2048 | 4.2 | 12:55 | |
 
-Time follows the Mac's graphics cores, not its memory: once there's enough memory for the model, more doesn't
-help. A Mac with half as many graphics cores takes roughly twice as long.
+Time follows the Mac's graphics processor, not its memory: once there's enough memory for the model, more doesn't
+help. Within a chip generation, a Mac with half as many graphics cores takes roughly twice as long. Newer chips
+are faster per core: the M5 family adds matrix units to each graphics core, which is exactly the arithmetic
+MOSS-Image spends its time on.
 
 Ways to go faster:
 

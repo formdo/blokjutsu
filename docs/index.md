@@ -15,7 +15,8 @@ extend it, crop it, or make it bigger.
 
 ![The Blokjutsu window: controls on the left; on the right, a picture of three bowls of ice cream on a diner counter with handwritten cards reading CHOCOLATE, CHERRY, and PLAIN](assets/screenshots/main-window.webp)
 
-[Install Blokjutsu](install.md){: .btn .btn-primary }
+[Download for Mac](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg){: .btn .btn-primary }
+[Other ways to install](install.md){: .btn }
 [Your first picture](first-picture.md){: .btn }
 
 ## What it is
@@ -54,8 +55,8 @@ extend it, crop it, or make it bigger.
 7. [Working from a picture](from-a-picture.md): changing, repainting, extending, cropping, and upscaling
 8. [Variations](variations.md): exploring around a picture you like
 9. [Your history](history.md): finding, reusing, and sharing pictures
-10. [Speed and memory](performance.md)
-11. [Running locally](local.md)
+10. [Speed and memory](performance.md): how long images take, and how much memory they need
+11. [Running locally](local.md): what goes online, and where Blokjutsu keeps things
 12. [Troubleshooting](troubleshooting.md) and [questions](faq.md)
 
 ## Etymology

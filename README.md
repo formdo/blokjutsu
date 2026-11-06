@@ -14,6 +14,8 @@ the open-weight [MOSS-Image](https://github.com/OpenMOSS/MOSS-Image) model.**
 
 **Simple on purpose:** a small set of controls designed to work together and to be quick to learn.
 
+[![Download for Mac](https://img.shields.io/badge/-Download_for_Mac-2f6fde?style=flat)](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg)
+
 **Using Blokjutsu?** Start with the [User's Guide](https://formdo.github.io/blokjutsu/): installing, a tour of the
 window, writing prompts, and every control explained.
 
@@ -50,7 +52,8 @@ It also grants the patent rights needed to use the code. The libraries Blokjutsu
 
 ## Install
 
-**Mac users:** open Terminal and paste
+**Mac users:** download the disk image with the **Download for Mac** button at the top (1.0.0rc2, 375 MB), open it, and drag Blokjutsu to
+Applications. Or install from Terminal by pasting
 
 ```sh
 curl -LsSf https://formdo.github.io/blokjutsu/install.sh | sh

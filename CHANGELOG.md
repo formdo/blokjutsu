@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.0.0rc1 (unreleased)
+## 1.0.0rc2 (unreleased)
+
+- A signed and notarized .dmg for installing without Terminal (`scripts/make_dmg.sh`), with Download for Mac
+  buttons in the README and the User's Guide
+
+## 1.0.0rc1 (2026-11-02)
 
 First release candidate.
 

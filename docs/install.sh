@@ -10,7 +10,7 @@
 # The model itself (about 30 GB) is downloaded later, from inside the app, after you confirm.
 set -eu
 
-VERSION="1.0.0rc1"
+VERSION="1.0.0rc2"
 SOURCE="${BLOKJUTSU_SOURCE:-https://github.com/formdo/blokjutsu/archive/refs/tags/v${VERSION}.tar.gz}"   # or a local folder
 PYTHON_VERSION="3.12"
 SUPPORT="${BLOKJUTSU_HOME:-$HOME/Library/Application Support/Blokjutsu.noindex}"
