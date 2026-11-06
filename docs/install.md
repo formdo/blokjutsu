@@ -5,7 +5,23 @@ nav_order: 2
 
 # Install and Uninstall
 
+## Download
+
+[Download for Mac](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg){: .btn .btn-primary }
+
+Blokjutsu 1.0.0rc2, 375 MB, for Macs with Apple silicon (M1 or later).
+
+1. Open the downloaded `Blokjutsu-1.0.0rc2.dmg`. A window opens with Blokjutsu and your Applications folder.
+2. Drag **Blokjutsu** onto **Applications**.
+3. Eject the disk image (in the Finder sidebar), and move it to the Trash if you like.
+4. Open Blokjutsu from Applications, Launchpad, or Spotlight. The first time, macOS says it was downloaded from
+   the internet and asks whether to open it; click **Open**. Apple has checked it, so this is the only question.
+
+Blokjutsu then asks before downloading the model (see [below](#the-model-download)).
+
 ## The installer
+
+The installer does the same from Terminal, without a disk image.
 
 1. Open **Terminal** (in Applications → Utilities, or press ⌘-Space and type *Terminal*).
 2. Paste this line and press Return:
@@ -60,7 +76,9 @@ In Terminal:
 curl -LsSf https://formdo.github.io/blokjutsu/install.sh | sh -s -- --uninstall
 ```
 
-This removes the app and the Python it runs on but **keeps your pictures, your settings, and the model**.
+This removes the app and the Python it runs on but **keeps your pictures, your settings, and the model**. If you
+installed from the disk image, drag Blokjutsu from Applications to the Trash instead; that removes the app, Python
+included, and also keeps your pictures, your settings, and the model.
 
 The model takes about 30 GB. To remove it as well, with everything else Blokjutsu keeps:
 

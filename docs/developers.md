@@ -162,11 +162,14 @@ Upload the .dmg to the GitHub release for the tag.
    publishing), and creates a GitHub release; tags containing `rc` are marked as pre-releases.
 
    ```sh
-   git tag v1.0.0rc1
+   git tag v1.0.0rc2
    git push --tags
    ```
 
 4. The installer installs the tagged source archive from GitHub, so it works as soon as the tag exists.
+5. Build the disk image with `scripts/make_dmg.sh` (see [Building the .dmg](#building-the-dmg)) and attach
+   `dist/Blokjutsu-<version>.dmg` to the GitHub release. The download links in `README.md`, `docs/index.md`, and
+   `docs/install.md` name the version, so update them in step 1.
 
 One-time setup: set GitHub Pages to deploy from GitHub Actions (the `pages.yml` workflow builds `docs/`, copying
 in the app icon from `blokjutsu/resources/` so there is only one copy); add the repository as a trusted

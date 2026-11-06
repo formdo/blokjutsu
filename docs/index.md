@@ -15,7 +15,8 @@ extend it, crop it, or make it bigger.
 
 ![The Blokjutsu window: controls on the left; on the right, a picture of three bowls of ice cream on a diner counter with handwritten cards reading CHOCOLATE, CHERRY, and PLAIN](assets/screenshots/main-window.webp)
 
-[Install Blokjutsu](install.md){: .btn .btn-primary }
+[Download for Mac](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg){: .btn .btn-primary }
+[Other ways to install](install.md){: .btn }
 [Your first picture](first-picture.md){: .btn }
 
 ## What it is
