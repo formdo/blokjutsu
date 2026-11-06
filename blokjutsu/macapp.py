@@ -3,7 +3,8 @@
     python -m blokjutsu.macapp [--dest ~/Applications] [--python PATH]
 
 The bundle holds only Info.plist, the icon and a launcher script; the code stays in the Python environment, so
-reinstalling the package updates the app. Output goes to <app data>/logs/console.log.
+reinstalling the package updates the app. Output goes to <app data>/logs/console.log. scripts/make_dmg.sh uses
+skeleton() for the self-contained app in the .dmg.
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ from pathlib import Path
 from . import __version__
 
 NAME = "Blokjutsu"
-BUNDLE_ID = "io.github.blokjutsu"
+BUNDLE_ID = "io.github.formdo.blokjutsu"
 ICON = Path(__file__).with_name("resources") / "icon.png"
 
 PLIST = """<?xml version="1.0" encoding="UTF-8"?>
@@ -60,19 +61,25 @@ def icns(png, out):
         subprocess.run(["iconutil", "-c", "icns", str(iconset), "-o", str(out)], check=True)
 
 
+def skeleton(app):
+    """Contents/{Info.plist, MacOS/, Resources/AppIcon.icns}; the executable Contents/MacOS/blokjutsu is the
+    caller's to add."""
+    contents = Path(app) / "Contents"
+    (contents / "MacOS").mkdir(parents=True, exist_ok=True)
+    (contents / "Resources").mkdir(exist_ok=True)
+    (contents / "Info.plist").write_text(PLIST.format(name=NAME, bundle_id=BUNDLE_ID, version=__version__))
+    if sys.platform == "darwin":
+        icns(ICON, contents / "Resources" / "AppIcon.icns")
+    return contents
+
+
 def build(dest, python):
     app = Path(dest).expanduser() / f"{NAME}.app"
     if app.exists():
         shutil.rmtree(app)
-    contents = app / "Contents"
-    (contents / "MacOS").mkdir(parents=True)
-    (contents / "Resources").mkdir()
-    (contents / "Info.plist").write_text(PLIST.format(name=NAME, bundle_id=BUNDLE_ID, version=__version__))
-    launcher = contents / "MacOS" / "blokjutsu"
+    launcher = skeleton(app) / "MacOS" / "blokjutsu"
     launcher.write_text(LAUNCHER.format(python=Path(python).absolute()))
     launcher.chmod(0o755)
-    if sys.platform == "darwin":
-        icns(ICON, contents / "Resources" / "AppIcon.icns")
     app.touch()                      # so Finder and the Dock pick up the icon
     return app
 

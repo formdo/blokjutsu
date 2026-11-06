@@ -123,6 +123,27 @@ smaller than PNG; the script keeps a file only if it decodes to exactly the orig
 python scripts/lossless_webp.py ~/path/to/pngs docs/assets/examples/samplers
 ```
 
+## Building the .dmg
+
+`scripts/make_dmg.sh` builds a self-contained `Blokjutsu.app` (a standalone Python with the pinned libraries,
+started by a small compiled launcher, `scripts/dmg/launcher.c`), signs every program file in it with the
+Developer ID certificate in your keychain, notarizes it with Apple, and wraps it in a signed, notarized .dmg in
+`dist/`. Run it from the repository root. To try the app before signing anything:
+
+```sh
+scripts/make_dmg.sh --no-sign
+```
+
+The release build needs the notarization credentials stored once in your keychain under the profile
+`blokjutsu`:
+
+```sh
+xcrun notarytool store-credentials blokjutsu --apple-id YOUR_APPLE_ID --team-id YOUR_TEAM_ID
+scripts/make_dmg.sh
+```
+
+Upload the .dmg to the GitHub release for the tag.
+
 ## Versions
 
 - **Libraries:** `constraints.txt` lists the exact versions a release was tested with; the installer installs

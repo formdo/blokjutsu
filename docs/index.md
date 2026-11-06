@@ -54,8 +54,8 @@ extend it, crop it, or make it bigger.
 7. [Working from a picture](from-a-picture.md): changing, repainting, extending, cropping, and upscaling
 8. [Variations](variations.md): exploring around a picture you like
 9. [Your history](history.md): finding, reusing, and sharing pictures
-10. [Speed and memory](performance.md)
-11. [Running locally](local.md)
+10. [Speed and memory](performance.md): how long images take, and how much memory they need
+11. [Running locally](local.md): what goes online, and where Blokjutsu keeps things
 12. [Troubleshooting](troubleshooting.md) and [questions](faq.md)
 
 ## Etymology

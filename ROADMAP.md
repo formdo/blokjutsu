@@ -2,10 +2,9 @@
 
 ## 1.0
 
-- Publish the release candidate: repository and Pages under formdo, PyPI, tag v1.0.0rc1
-- Test the installer on a clean Mac
-- Screenshots and measured timings in the User's Guide
-- Notarized, signed .dmg with a download button on the home page
+- Notarized, signed .dmg with a download button on the home page (rc2)
+- Remove Writing Tools and AutoFill from the Edit menu
+- Move the GitHub Actions workflows to their Node.js 24 versions
 
 ## 2.0
 
