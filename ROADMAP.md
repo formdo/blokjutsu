@@ -3,7 +3,6 @@
 ## 1.0
 
 - Remove Writing Tools and AutoFill from the Edit menu
-- Move the GitHub Actions workflows to their Node.js 24 versions
 
 ## 2.0
 
