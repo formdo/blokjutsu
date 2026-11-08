@@ -8,6 +8,7 @@
 - User's Guide: the download button first; the sidebar grouped into Getting started, Making images, Reference,
   and About; a page on describing images; menus merged into Controls; timings for an M5 Max; the install page
   for the disk image only; and the developer material moved to CONTRIBUTING.md
+- New baseball-card examples across the Change range and across seeds, and the Change guide redrawn from them
 
 ## 1.0.0rc2 (2026-11-06)
 

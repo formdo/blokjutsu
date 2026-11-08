@@ -27,9 +27,10 @@ Under the picture: its original size, and these buttons.
 
 | Change | result |
 |---|---|
-| 0.01–0.05 | almost identical: cleaner, sharper, slightly retouched |
-| 0.05–0.2 | same picture, restyled or with details redone |
-| 0.25–0.5 | same composition and colors, new content |
+| 0.01–0.2 | almost identical: cleaner, sharper, slightly retouched |
+| 0.25–0.7 | same picture with details redone; colors and layout kept |
+| 0.75–0.85 | same pose and framing; the prompt sets colors, clothes, light, and lettering |
+| 0.9–0.95 | a new picture with a similar subject and layout |
 | 1.0 | only the prompt matters; your picture is ignored, except outside a selected area |
 
 ## Prompting
@@ -55,7 +56,7 @@ Then write a prompt for the whole picture as it should end up, set **Change**, a
 selected area changes; the rest stays exactly as it was.
 
 - Replace something: **Change 1.0**, and a prompt describing what should be there
-- Fix or restyle something: **Change 0.2–0.5**
+- Fix or restyle something: **Change 0.5–0.8**
 
 ![The main window after the change: the cropped picture with the card now reading VANILLA at the top of the history, the original three-bowl picture below it, and on the left the starting picture with its painted card and Change set to 0.90](assets/screenshots/inpainted.webp)
 
