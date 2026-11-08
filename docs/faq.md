@@ -1,9 +1,10 @@
 ---
-title: Questions
-nav_order: 14
+title: Frequently asked questions
+parent: About
+nav_order: 3
 ---
 
-# Questions
+# Frequently asked questions
 
 **Is it really free?** Yes. Blokjutsu, MOSS-Image's code, and its model weights are all open source under the
 Apache License 2.0. See [Credits and licenses](credits.md#open-source).
@@ -28,5 +29,5 @@ the same **Seed** to repeat a picture, or [Variations](variations.md) to stay cl
 **Can it make video?** Not yet.
 
 **Why the name?** *Blok* is Danish for block and *jutsu* (術) Japanese for art: the art of the block, after the
-way MOSS-Image builds an image from blocks of pixels. See [Etymology](index.md#etymology) and
-[Design inspiration](index.md#design-inspiration).
+way MOSS-Image builds an image from blocks of pixels. See [Etymology](credits.md#etymology) and
+[Design inspiration](credits.md#design-inspiration).

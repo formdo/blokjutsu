@@ -1,6 +1,7 @@
 ---
 title: Examples
-nav_order: 7
+parent: Reference
+nav_order: 2
 ---
 
 # Examples
@@ -76,7 +77,7 @@ exact words, in any language, put them in the prompt in quotation marks (see [Wr
 
 ## Size
 
-The same prompt and seed at six sizes, from 384 × 256 (0.1 MP) to 2496 × 1664 (4.2 MP). 50 steps, Adherence 4.
+The same prompt and seed at six sizes, from 384 × 256 (0.1 megapixels) to 2496 × 1664 (4.2 megapixels). 50 steps, Adherence 4.
 
 > a crowded European street scene in which two college boys in matching maize and blue hoodies saying "Michigan"
 > and matching maize and blue hats with an M on them in yellow, recording a tik-tok video where a vertical phone on a
@@ -88,8 +89,8 @@ The same prompt and seed at six sizes, from 384 × 256 (0.1 MP) to 2496 × 1664 
 Negative prompt: *blurry, low quality*
 
 <table class="examples">
-  <tr><td><a href="assets/examples/sizes/basketball-0384.webp"><img src="assets/examples/sizes/basketball-0384.webp" alt="384 × 256 (0.1 MP)" loading="lazy"></a><br>384 × 256 (0.1 MP)</td><td><a href="assets/examples/sizes/basketball-0768.webp"><img src="assets/examples/sizes/basketball-0768.webp" alt="768 × 512 (0.4 MP)" loading="lazy"></a><br>768 × 512 (0.4 MP)</td><td><a href="assets/examples/sizes/basketball-1152.webp"><img src="assets/examples/sizes/basketball-1152.webp" alt="1152 × 768 (0.9 MP)" loading="lazy"></a><br>1152 × 768 (0.9 MP)</td></tr>
-  <tr><td><a href="assets/examples/sizes/basketball-1536.webp"><img src="assets/examples/sizes/basketball-1536.webp" alt="1536 × 1024 (1.6 MP)" loading="lazy"></a><br>1536 × 1024 (1.6 MP)</td><td><a href="assets/examples/sizes/basketball-1920.webp"><img src="assets/examples/sizes/basketball-1920.webp" alt="1920 × 1280 (2.5 MP)" loading="lazy"></a><br>1920 × 1280 (2.5 MP)</td><td><a href="assets/examples/sizes/basketball-2496.webp"><img src="assets/examples/sizes/basketball-2496.webp" alt="2496 × 1664 (4.2 MP)" loading="lazy"></a><br>2496 × 1664 (4.2 MP)</td></tr>
+  <tr><td><a href="assets/examples/sizes/basketball-0384.webp"><img src="assets/examples/sizes/basketball-0384.webp" alt="384 × 256 (0.1 megapixels)" loading="lazy"></a><br>384 × 256 (0.1 megapixels)</td><td><a href="assets/examples/sizes/basketball-0768.webp"><img src="assets/examples/sizes/basketball-0768.webp" alt="768 × 512 (0.4 megapixels)" loading="lazy"></a><br>768 × 512 (0.4 megapixels)</td><td><a href="assets/examples/sizes/basketball-1152.webp"><img src="assets/examples/sizes/basketball-1152.webp" alt="1152 × 768 (0.9 megapixels)" loading="lazy"></a><br>1152 × 768 (0.9 megapixels)</td></tr>
+  <tr><td><a href="assets/examples/sizes/basketball-1536.webp"><img src="assets/examples/sizes/basketball-1536.webp" alt="1536 × 1024 (1.6 megapixels)" loading="lazy"></a><br>1536 × 1024 (1.6 megapixels)</td><td><a href="assets/examples/sizes/basketball-1920.webp"><img src="assets/examples/sizes/basketball-1920.webp" alt="1920 × 1280 (2.5 megapixels)" loading="lazy"></a><br>1920 × 1280 (2.5 megapixels)</td><td><a href="assets/examples/sizes/basketball-2496.webp"><img src="assets/examples/sizes/basketball-2496.webp" alt="2496 × 1664 (4.2 megapixels)" loading="lazy"></a><br>2496 × 1664 (4.2 megapixels)</td></tr>
 </table>
 
 What to notice:
@@ -120,17 +121,21 @@ What to notice:
 
 ## Starting from a picture
 
-A 1909–1911 baseball card of Cy Young as the starting picture, at **Change** 0.25, 0.50, 0.75, 0.85, 0.90, 0.95,
-and 0.98. 368 × 640, 100 steps.
+A 1909–1911 baseball card of Cy Young as the starting picture, at **Change** 0.25, 0.50, 0.75, 0.80, 0.85, 0.90,
+and 0.95. 368 × 640 (the card's own size), 50 steps, Adherence 6, seed 3078153374. Raising the size at the same
+time, to 1 megapixel say, would have upscaled the card as well.
 
-> modern color photograph of a baseball pitcher from 1910 shown just after releasing a ball in the golden hour on a
-> field of green that goes to the horizon about midway up the background. He is wearing a white pinstrpied shirt and
-> pants, black belt, and a neon blue shirt under the grey shirt with a blue collar sticking out and blue sleeves
-> extending past the short grey sleeves, and a hat that is neon blue with a "Z" on it
+> modern color photographic baseball card of a pitcher shown from the side holding a baseball in the golden hour on
+> a field of green that goes to the horizon about midway up the background with a beautiful golden-orange sunset. He
+> is wearing a crisp white jersey and pants, black belt, and a bright red shirt under the white shirt with a red
+> collar sticking out and red sleeves extending past the short white sleeves, and a bright red hat with a white "Z"
+> on it, at the bottom of the card a sans-serif caption: "OLD, ZANESVILLE"
+
+Negative prompt: *cartoon, anime, drawing*
 
 <table class="examples">
   <tr><td><a href="assets/examples/from-image/cy-young-000.jpg"><img src="assets/examples/from-image/cy-young-000.jpg" alt="the original card" loading="lazy"></a><br>the original card</td><td><a href="assets/examples/from-image/cy-young-025.webp"><img src="assets/examples/from-image/cy-young-025.webp" alt="Change 0.25" loading="lazy"></a><br>Change 0.25</td><td><a href="assets/examples/from-image/cy-young-050.webp"><img src="assets/examples/from-image/cy-young-050.webp" alt="0.50" loading="lazy"></a><br>0.50</td><td><a href="assets/examples/from-image/cy-young-075.webp"><img src="assets/examples/from-image/cy-young-075.webp" alt="0.75" loading="lazy"></a><br>0.75</td></tr>
-  <tr><td><a href="assets/examples/from-image/cy-young-085.webp"><img src="assets/examples/from-image/cy-young-085.webp" alt="0.85" loading="lazy"></a><br>0.85</td><td><a href="assets/examples/from-image/cy-young-090.webp"><img src="assets/examples/from-image/cy-young-090.webp" alt="0.90" loading="lazy"></a><br>0.90</td><td><a href="assets/examples/from-image/cy-young-095.webp"><img src="assets/examples/from-image/cy-young-095.webp" alt="0.95" loading="lazy"></a><br>0.95</td><td><a href="assets/examples/from-image/cy-young-098.webp"><img src="assets/examples/from-image/cy-young-098.webp" alt="0.98" loading="lazy"></a><br>0.98</td></tr>
+  <tr><td><a href="assets/examples/from-image/cy-young-080.webp"><img src="assets/examples/from-image/cy-young-080.webp" alt="0.80" loading="lazy"></a><br>0.80</td><td><a href="assets/examples/from-image/cy-young-085.webp"><img src="assets/examples/from-image/cy-young-085.webp" alt="0.85" loading="lazy"></a><br>0.85</td><td><a href="assets/examples/from-image/cy-young-090.webp"><img src="assets/examples/from-image/cy-young-090.webp" alt="0.90" loading="lazy"></a><br>0.90</td><td><a href="assets/examples/from-image/cy-young-095.webp"><img src="assets/examples/from-image/cy-young-095.webp" alt="0.95" loading="lazy"></a><br>0.95</td></tr>
 </table>
 
 *Card: [Cy Young, Cleveland Naps, baseball card portrait], card set White Borders (T206), issued by the American
@@ -140,11 +145,31 @@ no known restrictions on publication.
 
 What to notice:
 
-- **Up to 0.5, the card barely changes,** however different the prompt.
-- **From 0.75 to 0.90, the prompt takes over the details** (the pinstripes, the blue sleeves and collar, the blue
-  cap with its Z) while the card's pose, framing, and border stay.
-- **At 0.95, it's a new person on a similar card,** and **at 0.98, a new picture** that keeps only the colors and
-  the general idea. Here MOSS-Image also shows its limits: the pitcher's cross-body throw isn't a real pitching
-  motion.
-- **The lettering on the card becomes invented text** once Change is high enough to redraw it. Words come out
-  right only when the prompt gives them in quotation marks.
+- **At 0.25, the card is retouched, not changed:** the same colors and caption, with only the "C" on the cap
+  turned into the prompt's "Z".
+- **At 0.50, details are redrawn** (the face, a ball in the hand) but the card's colors stay, and the caption
+  starts to come apart into invented lettering.
+- **From 0.75 to 0.85, the prompt takes over the colors and clothes** (the white jersey, the red collar, sleeves,
+  and cap, the sunset) and the caption reads as quoted, while the pose, framing, and border stay. By 0.85 it is a
+  different man.
+- **At 0.90, a new picture on a similar card,** with the pitcher turned toward the camera; **at 0.95, a modern
+  card** that keeps only the subject, the colors, and the general idea.
+- **Words come out right only when the prompt gives them in quotation marks,** and once Change is high enough to
+  redraw them.
+
+### Same Change, other seeds
+
+The same settings at **Change** 0.85 with eight random seeds.
+
+<table class="examples">
+  <tr><td><a href="assets/examples/from-image/cy-young-085-seed-1.webp"><img src="assets/examples/from-image/cy-young-085-seed-1.webp" alt="seed 1" loading="lazy"></a><br>seed 1</td><td><a href="assets/examples/from-image/cy-young-085-seed-2.webp"><img src="assets/examples/from-image/cy-young-085-seed-2.webp" alt="seed 2" loading="lazy"></a><br>seed 2</td><td><a href="assets/examples/from-image/cy-young-085-seed-3.webp"><img src="assets/examples/from-image/cy-young-085-seed-3.webp" alt="seed 3" loading="lazy"></a><br>seed 3</td><td><a href="assets/examples/from-image/cy-young-085-seed-4.webp"><img src="assets/examples/from-image/cy-young-085-seed-4.webp" alt="seed 4" loading="lazy"></a><br>seed 4</td></tr>
+  <tr><td><a href="assets/examples/from-image/cy-young-085-seed-5.webp"><img src="assets/examples/from-image/cy-young-085-seed-5.webp" alt="seed 5" loading="lazy"></a><br>seed 5</td><td><a href="assets/examples/from-image/cy-young-085-seed-6.webp"><img src="assets/examples/from-image/cy-young-085-seed-6.webp" alt="seed 6" loading="lazy"></a><br>seed 6</td><td><a href="assets/examples/from-image/cy-young-085-seed-7.webp"><img src="assets/examples/from-image/cy-young-085-seed-7.webp" alt="seed 7" loading="lazy"></a><br>seed 7</td><td><a href="assets/examples/from-image/cy-young-085-seed-8.webp"><img src="assets/examples/from-image/cy-young-085-seed-8.webp" alt="seed 8" loading="lazy"></a><br>seed 8</td></tr>
+</table>
+
+What to notice:
+
+- **The card holds steady:** every seed keeps the side view, the ball in the throwing hand, the border, and the
+  caption, and all eight spell it right.
+- **What the card left open changes:** the face, hair, and beard, where the sun sits, how far the red sleeves
+  reach. One seed brings the ball and a glove up in front of the body.
+- **A prompt can be followed too literally:** one seed prints the caption's quotation marks.

@@ -1,6 +1,7 @@
 ---
 title: Your history
-nav_order: 10
+parent: Making images
+nav_order: 5
 ---
 
 # Your history

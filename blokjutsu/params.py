@@ -52,7 +52,7 @@ class Params:
     variation_seed: int = 0         # 0 = random per image
     variation_base: str = ""        # earlier variations, "seed:strength;..." applied in order before this one
     init_image: str = ""            # image-to-image input (path); "" = text-to-image
-    init_strength: float = 0.5      # how much the input may change: σ₀ of the noise path
+    init_strength: float = 0.5 ** 0.5   # σ₀ of the noise path; the Change control shows σ₀² (img2img.change_to_sigma)
     mask_image: str = ""            # inpainting: path to a grayscale PNG framed like init_image; white is
                                     # regenerated, black kept, gray (the feathered edge) blended
 

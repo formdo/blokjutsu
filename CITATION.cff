@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use Blokjutsu, please cite it and the MOSS-Image model it runs."
 title: Blokjutsu
-version: 1.0.0rc2
+version: 1.0.0rc3
 license: Apache-2.0
 authors:
   - family-names: Carpenter

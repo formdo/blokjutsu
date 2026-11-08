@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from .. import img2img as I
 from .. import params as P
 from .image_cache import ImageCache
 from .icons import BLUE, RED, icon
@@ -31,7 +32,7 @@ def summary(p, elapsed=None):
         bits.append(f"variation {p.variation:.2f} (seed {p.variation_seed})" if p.variation_seed
                     else f"variation {p.variation:.2f}")
     if p.init_image:
-        bits.append(f"{'inpainted' if p.mask_image else 'from image'}, change {p.init_strength:.2f}")
+        bits.append(f"{'inpainted' if p.mask_image else 'from image'}, change {I.sigma_to_change(p.init_strength):.2f}")
     bits += [f"{p.steps} steps", f"adherence {p.cfg:g}", p.sampler, P.model_name(p.model)]
     if elapsed:
         bits.append(f"{clock(elapsed)} m:s" if elapsed >= 60 else f"{elapsed:.0f} s")
@@ -336,7 +337,7 @@ class PendingCard(Card):
 def empty_state():
     widget = QWidget()
     art = QLabel()
-    art.setPixmap(QIcon(str(RESOURCES / "empty.svg")).pixmap(QSize(240, 180)))
+    art.setPixmap(QIcon(str(RESOURCES / "empty.svg")).pixmap(QSize(360, 270)))
     art.setAlignment(Qt.AlignCenter)
     text = QLabel("Your pictures will appear here.\nWrite a prompt and press Generate.")
     text.setAlignment(Qt.AlignCenter)

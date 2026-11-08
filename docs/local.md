@@ -1,6 +1,7 @@
 ---
 title: Running locally
-nav_order: 12
+parent: About
+nav_order: 1
 ---
 
 # Running locally
@@ -29,8 +30,7 @@ software versions. You are not logged in to anything. Nothing about your picture
 
 ## Other connections
 
-The Help menu's links open in your web browser. The installer downloads Python and the libraries from their
-usual sources (astral.sh, python.org builds, the Python Package Index, and GitHub).
+The Help menu's links open in your web browser. The app itself is downloaded from GitHub.
 
 ## What's inside a picture file
 
@@ -56,7 +56,7 @@ Everything Blokjutsu writes, and what **Delete all history** does with it:
 | a lock that keeps Blokjutsu to one window | `…/Blokjutsu.noindex/instance.lock` | kept (holds no content) |
 | the captioning head | `…/Blokjutsu.noindex/caption/` | kept |
 | the MOSS-Image model | `…/Blokjutsu.noindex/models/` | kept |
-| the app and the Python it runs on | `~/Applications/Blokjutsu.app`, `…/Blokjutsu.noindex/tools/`, `…/Blokjutsu.noindex/runtime/` | kept |
+| the app, with the Python it runs on inside it | `/Applications/Blokjutsu.app` | kept |
 
 `…/Blokjutsu.noindex` is `~/Library/Application Support/Blokjutsu.noindex`.
 

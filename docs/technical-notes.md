@@ -1,6 +1,7 @@
 ---
 title: Technical notes
 parent: For developers
+grand_parent: About
 nav_order: 1
 ---
 
@@ -184,9 +185,13 @@ The slider is quadratic (strength = position²), giving most of its travel to th
 
 SDEdit for a rectified-flow model. The input is resized to the output size (scaled to cover, center cropped,
 EXIF rotation applied), encoded by the VAE to the normalized latent z₀, and placed on the noise path at
-σ₀ = Change: x_σ₀ = (1 − σ₀)·z₀ + σ₀·ε. Only the solver steps with σ ≤ σ₀ run, so Change 0.4 at 20 steps
-costs about 8 model passes. Low Change keeps layout and identity; high Change keeps only rough color and
-arrangement; 1 is text-to-image. Variations work on top (they perturb ε).
+σ₀ = √Change: x_σ₀ = (1 − σ₀)·z₀ + σ₀·ε. Only the solver steps with σ ≤ σ₀ run. With shift *s*, the steps are
+uniform in *t* with σ = *s*t/(1 + (*s*−1)t), so the fraction that runs is σ₀/(*s* − (*s*−1)σ₀): with the default
+*s* = 5, about 2 of 20 steps at Change 0.16 (σ₀ = 0.4), 7 at Change 0.5, and 13 at Change 0.81 (σ₀ = 0.9).
+That is why the control shows σ₀² rather than σ₀: a linear σ₀ crowds nearly all the visible effect into its top
+tenth. Settings files store σ₀ itself, as `init_strength`, so they mean the same whichever way the control shows
+it. Low Change keeps layout and identity; high Change keeps only rough color and arrangement; 1 is
+text-to-image. Variations work on top (they perturb ε).
 
 The input is copied into each image's folder as `input.*`, so results stay reproducible after the original
 moves. **Match Image Size** sets the output to the input's aspect ratio at up to about 2 MP.
@@ -243,7 +248,7 @@ In **Start from image**, **Select area to change…** (or a click on the picture
 dashed frame: outwards extends, inwards crops; the boxes follow), with cropped-away parts shown faint on any side for outpainting (the margins are always
 regenerated; they start as the image's edges stretched and blurred).
 
-At run time the masked region follows the usual image-to-image path from σ₀ = Change, while every other latent
+At run time the masked region follows the usual image-to-image path from σ₀ = √Change, while every other latent
 cell is reset after each solver step to the input on its own noise path, (1 − σ)·z₀ + σ·ε, with the same ε as the
 start. A cell is regenerated if any of its 16×16 pixels is masked, grown by one cell, so the feathered pixel edge
 lies inside regenerated latent; finally the input's pixels are pasted back outside the feathered mask. Change 1.0
@@ -272,6 +277,6 @@ PNG saved with **Settings in PNG** on.
 The Aspect and MP menus always show the current size. A size matching no preset shows its ratio rounded to
 x.xx:1, and the MP menu then offers it at ×1, ×1.5, ×2, ×2.5, ×3, and ×4 (each side rounded to a multiple of 16,
 area ≤ 4.2 MP). With **Start from image** on and a low **Change**, that upscales: the input is resized (Lanczos)
-to the new size, encoded, re-noised to σ₀ = Change, and denoised. At Change 0.02 with shift 5 only the last
-solver step has σ ≤ 0.02, so a "50-step" run does one step; the time is mostly prompt and VAE encoding/decoding.
-Higher Change (0.1–0.3) runs more steps and lets the model add more new detail.
+to the new size, encoded, re-noised to σ₀ = √Change, and denoised. At the lowest Change, 0.01 (σ₀ = 0.1), shift 5
+leaves about 1 step in 50, so the time is mostly prompt and VAE encoding and decoding. Change 0.05–0.1
+(σ₀ ≈ 0.22–0.32) runs a few more steps and lets the model add new detail.

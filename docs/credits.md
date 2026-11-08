@@ -1,6 +1,7 @@
 ---
 title: Credits and licenses
-nav_order: 15
+parent: About
+nav_order: 4
 ---
 
 # Credits and licenses
@@ -65,7 +66,7 @@ White Borders (T206), issued by the American Tobacco Company, 1909–1911, from 
 Photographs Division (Benjamin K. Edwards Collection), with no known restrictions on publication
 ([loc.gov/pictures/item/2008676577](https://www.loc.gov/pictures/item/2008676577/)).
 
-The photograph in [Writing prompts](prompts.md#let-the-model-help) is "Sunday cyclists in East Potomac Park, Washington, D.C." by Marjory Collins, June–July 1942, from the Library
+The photograph in [Describing images](describing.md) is "Sunday cyclists in East Potomac Park, Washington, D.C." by Marjory Collins, June–July 1942, from the Library
 of Congress's Farm Security Administration/Office of War Information collection, which is in the public domain
 ([loc.gov/item/2017825632](https://www.loc.gov/item/2017825632/)).
 
@@ -77,3 +78,21 @@ unchanged, and `blokjutsu/moss_forward.py`, adapted from it. To cite Blokjutsu i
 [GitHub](https://github.com/formdo/blokjutsu).
 
 "MOSS-Image" is the OpenMOSS Team's name and is used here only to say what Blokjutsu runs.
+
+## Etymology
+
+**Blokjutsu** (BLOK-joot-soo, /ˈblɒk.dʒuː.tsuː/), *noun*. The art of the block.
+
+From Danish *blok*, "block," and Japanese *jutsu* (術, じゅつ), "art" or "technique." The name comes from how
+MOSS-Image works: it treats an image as blocks of pixels, each 16 × 16 square one unit for the model, and
+transforms them step by step from noise into the finished image.
+
+## Design inspiration
+
+The block designs in the icon and the app draw on
+
+- the [Kohs block design test](https://en.wikipedia.org/wiki/Kohs_block_design_test){:target="_blank"},
+  introduced by Samuel C. Kohs in 1920: colored cubes, some faces split diagonally, arranged to match a pattern
+- [Froebel's gifts](https://en.wikipedia.org/wiki/Froebel_gifts){:target="_blank"}, the wooden building blocks of
+  Friedrich Fröbel's first kindergartens
+- the primary colors and simple geometry of the [Bauhaus](https://en.wikipedia.org/wiki/Bauhaus){:target="_blank"}
