@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0rc3 (unreleased)
+## 1.0.0rc3 (2026-11-08)
 
 - Generate stays at the top of the controls while they scroll
 - The Change control shows σ₀², spreading its useful range; older settings files keep their meaning

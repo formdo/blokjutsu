@@ -7,13 +7,13 @@ nav_order: 1
 # Install and Uninstall
 
 <p class="download">
-  <a class="btn btn-download" href="https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg">Download for Mac</a><br>
-  <span>Blokjutsu 1.0.0rc2 · about 360 MB · for Macs with Apple silicon</span>
+  <a class="btn btn-download" href="https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc3/Blokjutsu-1.0.0rc3.dmg">Download for Mac</a><br>
+  <span>Blokjutsu 1.0.0rc3 · about 360 MB · for Macs with Apple silicon</span>
 </p>
 
 ## Installing
 
-1. Open the downloaded `Blokjutsu-1.0.0rc2.dmg`. A window opens with Blokjutsu and your Applications folder.
+1. Open the downloaded `Blokjutsu-1.0.0rc3.dmg`. A window opens with Blokjutsu and your Applications folder.
 2. Drag **Blokjutsu** onto **Applications**.
 3. Eject the disk image (in the Finder sidebar), and move it to the Trash if you like.
 4. Open Blokjutsu from Applications, Launchpad, or Spotlight. The first time, macOS says it was downloaded from

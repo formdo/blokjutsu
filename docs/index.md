@@ -5,8 +5,8 @@ description: A local, permissively licensed, open-source Mac app for generating 
 ---
 
 <p class="download">
-  <a class="btn btn-download" href="https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg">Download for Mac</a><br>
-  <span>Blokjutsu 1.0.0rc2 · about 360 MB · for Macs with Apple silicon</span>
+  <a class="btn btn-download" href="https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc3/Blokjutsu-1.0.0rc3.dmg">Download for Mac</a><br>
+  <span>Blokjutsu 1.0.0rc3 · about 360 MB · for Macs with Apple silicon</span>
 </p>
 
 <img src="assets/icon.png" alt="" width="96" align="right">
