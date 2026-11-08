@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Open in Preview** is a button on each picture, in place of double-clicking it
+- User's Guide: a shorter home page that leads straight into getting started; the app's name beside the icon
+  in the header; the search under the menu, with no bar above the page; Examples under Making images; Install and Uninstall and
+  Running locally under Reference; one page of frequently asked questions, troubleshooting included; one page
+  for developers, with the technical notes; the BibTeX citation shows its authors again
+- A local preview of the User's Guide (`docs/serve.sh`)
+- The disk image opens on a window that says how to install, with larger icons
+
 ## 1.0.0rc3 (2026-11-08)
 
 - Generate stays at the top of the controls while they scroll

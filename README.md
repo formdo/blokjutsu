@@ -66,7 +66,7 @@ blokjutsu
 
 [CONTRIBUTING.md](CONTRIBUTING.md) covers setting up a development environment, running the tests, the design
 and modules, building the .dmg, and releasing. The User's Guide's
-[Technical notes](https://formdo.github.io/blokjutsu/technical-notes.html) explain how each control works.
+[Technical notes](https://formdo.github.io/blokjutsu/developers.html#technical-notes) explain how each control works.
 
 ## Built on MOSS-Image
 
@@ -141,7 +141,7 @@ What comes next is in [ROADMAP.md](ROADMAP.md).
 
 Please report bugs and request features as [GitHub issues](https://github.com/formdo/blokjutsu/issues). For help
 using Blokjutsu, see the [User's Guide](https://formdo.github.io/blokjutsu/) and its
-[Troubleshooting](https://formdo.github.io/blokjutsu/troubleshooting.html) page.
+[Frequently asked questions](https://formdo.github.io/blokjutsu/faq.html#when-something-goes-wrong) page.
 
 ## Etymology
 

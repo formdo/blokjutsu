@@ -4,20 +4,24 @@
 #   scripts/make_dmg.sh --no-sign        assemble the app only, to try it before signing
 #   scripts/make_dmg.sh --no-notarize    assemble and sign, without sending anything to Apple
 #   scripts/make_dmg.sh                  the release build: assemble, sign, notarize, and staple
+#   scripts/make_dmg.sh --dmg-only       remake only the signed .dmg from the app already built, to try its window
 #
 # Run from the repository root on an Apple silicon Mac with uv and Xcode's Command Line Tools. Signing uses the
 # "Developer ID Application" certificate in your keychain; notarization uses the notarytool credentials stored
 # under the keychain profile "blokjutsu" (or $NOTARY_PROFILE). Output goes to build/dmg/ and dist/.
-set -euo pipefail
+set -eEuo pipefail
+trap 'printf "Error: line %s failed: %s\\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 
 PYTHON_VERSION="3.12"
 NOTARY_PROFILE="${NOTARY_PROFILE:-blokjutsu}"
 SIGN=1
 NOTARIZE=1
+DMG_ONLY=0
 for arg in "$@"; do
   case "$arg" in
     --no-sign) SIGN=0; NOTARIZE=0 ;;
     --no-notarize) NOTARIZE=0 ;;
+    --dmg-only) DMG_ONLY=1; NOTARIZE=0 ;;
     *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -44,6 +48,9 @@ if [ "$SIGN" = 1 ]; then
   say "Signing as: $IDENTITY"
 fi
 
+if [ "$DMG_ONLY" = 1 ]; then
+  [ -d "$APP" ] || die "no app in $APP to package: run a full build first."
+else
 say "1/6  A standalone Python $PYTHON_VERSION"
 rm -rf "$BUILD" && mkdir -p "$BUILD/python" dist
 uv python install --quiet --install-dir "$BUILD/python" "$PYTHON_VERSION"
@@ -119,14 +126,59 @@ if [ "$NOTARIZE" = 1 ]; then
   xcrun stapler staple "$APP"
   rm "$BUILD/Blokjutsu.zip"
 fi
+fi
+
+layout_window() {   # the window the disk image opens in: icon size and places, and the background
+  # The first build asks once for permission for Terminal to control Finder.
+  osascript - "$1" <<'EOF'
+on run {volumeName}
+  tell application "Finder"
+    tell disk volumeName
+      open
+      set current view of container window to icon view
+      set toolbar visible of container window to false
+      set statusbar visible of container window to false
+      set bounds of container window to {200, 120, 720, 468}
+      set opts to icon view options of container window
+      set arrangement of opts to not arranged
+      set icon size of opts to 128
+      set text size of opts to 13
+      set background picture of opts to file ".background:background.tiff"
+      set position of item "Blokjutsu.app" of container window to {130, 125}
+      set position of item "Applications" of container window to {390, 125}
+      close
+      open
+      update without registering applications
+      delay 2
+      close
+    end tell
+  end tell
+end run
+EOF
+}
 
 say "6/6  The disk image"
 STAGE="$BUILD/stage"
-rm -rf "$STAGE" "$DMG" && mkdir -p "$STAGE"
+RW="$BUILD/rw.dmg"
+VOLUME="Blokjutsu $VERSION"
+! ls -d "/Volumes/$VOLUME"* >/dev/null 2>&1 || die "eject the mounted \"$VOLUME\" disk image first (in Finder's sidebar)."
+rm -rf "$STAGE" "$RW" "$DMG" && mkdir -p "$STAGE/.background"
 ditto "$APP" "$STAGE/Blokjutsu.app"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -quiet -volname "Blokjutsu $VERSION" -srcfolder "$STAGE" -fs HFS+ -format ULFO "$DMG"
+"$PY" scripts/dmg/background.py "$BUILD/bg.png" 1
+"$PY" scripts/dmg/background.py "$BUILD/bg@2x.png" 2
+tiffutil -cathidpicheck "$BUILD/bg.png" "$BUILD/bg@2x.png" -out "$STAGE/.background/background.tiff"
+hdiutil create -volname "$VOLUME" -srcfolder "$STAGE" -fs HFS+ -format UDRW \
+  -size "$(( $(du -sm "$STAGE" | cut -f1) * 12 / 10 + 100 ))m" "$RW" >/dev/null
 rm -rf "$STAGE"
+hdiutil attach -readwrite -noverify -noautoopen "$RW" >/dev/null
+layout_window "$VOLUME"
+chmod -Rf go-w "/Volumes/$VOLUME" || true
+rm -rf "/Volumes/$VOLUME/.fseventsd"
+sync
+hdiutil detach -quiet "/Volumes/$VOLUME"
+hdiutil convert -quiet "$RW" -format ULFO -o "$DMG"
+rm "$RW"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 if [ "$NOTARIZE" = 1 ]; then
   notarize "$DMG"

@@ -9,3 +9,7 @@ docs/_site/
 docs/assets/icon.png
 docs/assets/icon.svg
 .DS_Store
+docs/Gemfile.lock
+docs/vendor/
+docs/.bundle/
+docs/.jekyll-cache/

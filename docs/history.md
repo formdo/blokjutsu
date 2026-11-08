@@ -16,10 +16,9 @@ prompt. The text can be selected and copied.
 | Describe image | writes descriptions of it |
 | Reuse settings | puts its prompt and all settings back in the controls |
 | Copy seed, Copy prompt | to the clipboard |
+| Open in Preview | opens it in the Mac's Preview app |
 | Show in Finder | its folder |
 | Delete | removes it, permanently, after asking |
-
-Double-click a picture to open it in the Mac's Preview application.
 
 ## Where pictures are kept
 

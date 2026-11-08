@@ -108,7 +108,7 @@ pytest
 
 ## Behavior notes
 
-Per-control technical notes are in the User's Guide's [Technical notes](https://formdo.github.io/blokjutsu/technical-notes.html).
+Per-control technical notes are in the User's Guide's [Technical notes](https://formdo.github.io/blokjutsu/developers.html#technical-notes).
 
 - **Variations:** a Variation strength above 0 keeps the seed and blends in noise from a per-image
   variation seed, ε = cos(πs/2)·ε_seed + sin(πs/2)·ε_var (exactly N(0, I) for all s). **Generate Similar Image** on a card
@@ -136,6 +136,19 @@ smaller than PNG; the script keeps a file only if it decodes to exactly the orig
 python scripts/lossless_webp.py ~/path/to/pngs docs/assets/examples/samplers
 ```
 
+## Previewing the User's Guide
+
+The guide in `docs/` is a Jekyll site that GitHub Pages publishes from `main`. To preview it locally, rebuilt on
+every save, install a current Ruby once (`brew install ruby`; the macOS Ruby is too old), then run
+
+```sh
+docs/serve.sh
+```
+
+and open http://127.0.0.1:4000/blokjutsu/. The first run installs Jekyll and the plugins into `docs/vendor/`.
+Ctrl-C stops the server. Merging into `main` republishes the site and nothing else; PyPI and the release run
+only on tags.
+
 ## Building the .dmg
 
 `scripts/make_dmg.sh` builds a self-contained `Blokjutsu.app` (a standalone Python with the pinned libraries,
@@ -154,6 +167,9 @@ The release build needs the notarization credentials stored once in your keychai
 xcrun notarytool store-credentials blokjutsu --apple-id YOUR_APPLE_ID --team-id YOUR_TEAM_ID
 scripts/make_dmg.sh
 ```
+
+The disk image's window (icon size and places, and the background drawn by `scripts/dmg/background.py`) is
+set by asking Finder, so the first build asks once for permission for Terminal to control Finder.
 
 Upload the .dmg to the GitHub release for the tag.
 

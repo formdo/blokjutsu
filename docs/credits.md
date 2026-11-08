@@ -1,7 +1,6 @@
 ---
 title: Credits and licenses
-parent: About
-nav_order: 4
+nav_order: 5
 ---
 
 # Credits and licenses
@@ -17,6 +16,7 @@ Team and MOSI.AI. All of the picture-making is theirs. Blokjutsu is not affiliat
 
 If you use pictures or results from Blokjutsu in research, please cite MOSS-Image:
 
+{% raw %}
 ```bibtex
 @misc{mossimage2026,
   title        = {MOSS-Image},
@@ -33,6 +33,7 @@ If you use pictures or results from Blokjutsu in research, please cite MOSS-Imag
   url           = {https://arxiv.org/abs/2610.23374}
 }
 ```
+{% endraw %}
 
 ## Models
 
@@ -49,7 +50,8 @@ encoder and image decoder, from Qwen and FLUX.2, are included in that download.
 
 PyTorch and torchvision (BSD-3-Clause), Diffusers, Transformers, Accelerate, huggingface_hub, and safetensors
 (Apache-2.0, Hugging Face), PySide6 / Qt (LGPL-3.0), Pillow (MIT-CMU), NumPy and httpx (BSD-3-Clause), PyObjC
-(MIT), and uv (Apache-2.0 / MIT, Astral) for installing.
+(MIT), and uv (Apache-2.0 / MIT, Astral) for installing. This guide is built with
+[Jekyll](https://jekyllrb.com) (MIT) and the [Just the Docs](https://just-the-docs.com) theme (MIT).
 
 ## Open source
 
