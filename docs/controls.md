@@ -168,4 +168,4 @@ These work in whichever text box you're typing in.
 - **MOSS-Image User Guide**, **MOSS-Image Technical Report (arXiv)**, and **MOSS-Image on GitHub**: the model
   authors' own pages, in your web browser.
 - **Show Log**: opens Blokjutsu's log file. If something goes wrong, the full error is there; include it when
-  [reporting a problem](troubleshooting.md).
+  [reporting a problem](faq.md#when-something-goes-wrong).

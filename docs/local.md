@@ -1,7 +1,7 @@
 ---
 title: Running locally
-parent: About
-nav_order: 1
+parent: Reference
+nav_order: 3
 ---
 
 # Running locally
@@ -80,5 +80,5 @@ old folder; move them in Finder if you want them in the history.
 
 
 macOS itself also keeps traces outside Blokjutsu's control: Recent Items, the last folder used in Open and Save
-panels, and the history of whatever app you double-click a picture into. Text you copied stays on the clipboard
+panels, and the history of whatever app you open a picture in. Text you copied stays on the clipboard
 until you copy something else.

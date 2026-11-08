@@ -9,13 +9,23 @@ favicon_ico: /assets/icon.png
 color_scheme: light
 search_enabled: true
 heading_anchors: true
-aux_links:
-  "Download": "/blokjutsu/install.html"
-  "GitHub": "https://github.com/formdo/blokjutsu"
-aux_links_new_tab: false
 footer_content: >-
   Blokjutsu is an independent app for <a href="https://github.com/OpenMOSS/MOSS-Image">MOSS-Image</a> by the
   OpenMOSS Team and MOSI.AI. Apache License 2.0.
 baseurl: /blokjutsu
 exclude:
   - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - serve.sh
+# GitHub Pages gives every page the theme's layout; a local Jekyll needs it said.
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+# Quiet the theme's Sass deprecation warnings in a local preview.
+sass:
+  quiet_deps: true
+  silence_deprecations: [import, global-builtin, color-functions]

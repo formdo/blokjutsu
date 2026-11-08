@@ -87,6 +87,14 @@ def confirm_delete(parent, title, text, details, action="Delete"):
     return box.clickedButton() is delete
 
 
+
+def open_in_preview(path):
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", "-a", "Preview", str(path)])
+    else:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
+
 class MainWindow(QMainWindow):
     def __init__(self, backend):
         super().__init__()
@@ -594,7 +602,7 @@ class MainWindow(QMainWindow):
         card.copySeed.connect(lambda e: clipboard.setText(str(e.params.seed)))
         card.copyPrompt.connect(lambda e: clipboard.setText(e.params.prompt))
         card.reveal.connect(lambda e: self._reveal(e.image))
-        card.open_.connect(lambda e: QDesktopServices.openUrl(QUrl.fromLocalFile(str(e.image))))
+        card.open_.connect(lambda e: open_in_preview(e.image))
         card.trash.connect(self._trash)
 
     def _vary(self, entry):

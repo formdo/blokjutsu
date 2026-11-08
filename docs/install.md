@@ -1,7 +1,7 @@
 ---
 title: Install and Uninstall
-parent: Getting started
-nav_order: 1
+parent: Reference
+nav_order: 4
 ---
 
 # Install and Uninstall
@@ -10,6 +10,13 @@ nav_order: 1
   <a class="btn btn-download" href="https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc3/Blokjutsu-1.0.0rc3.dmg">Download for Mac</a><br>
   <span>Blokjutsu 1.0.0rc3 · about 360 MB · for Macs with Apple silicon</span>
 </p>
+
+## What you need
+
+- **Mac:** Apple silicon (M1 or later), macOS 12.3 or later
+- **Memory:** 32 GB or more; 48 GB or more is comfortable ([why](performance.md))
+- **Disk:** about 40 GB free, mostly for the model
+- **Internet:** only for downloading the app and, once, the model
 
 ## Installing
 

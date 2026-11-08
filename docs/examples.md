@@ -1,7 +1,7 @@
 ---
 title: Examples
-parent: Reference
-nav_order: 2
+parent: Making images
+nav_order: 6
 ---
 
 # Examples

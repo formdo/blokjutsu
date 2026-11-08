@@ -41,3 +41,102 @@ p.download {
     color: #fff;
   }
 }
+
+.site-title {
+  gap: 0.6rem;
+}
+
+.site-icon {
+  height: 2rem;
+  width: auto;
+}
+
+.site-name {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 2rem;
+
+  ul {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  @media (max-width: 50rem) {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.main-content h2 + p:has(> img:first-child) {
+  margin-top: 1.25rem;
+}
+
+// No top bar beside the content: the search sits under the sidebar's menu.
+.side-bar + .main .main-header {
+  display: none !important;
+}
+
+.sidebar-search {
+  width: 100%;
+  padding: $sp-2 $gutter-spacing-sm;
+
+  @include mq(md) {
+    width: $nav-width-md;
+    padding: $sp-2 $sp-4 $sp-4 $gutter-spacing;
+  }
+
+  @include mq(lg) {
+    width: $nav-width;
+  }
+
+  .search {
+    height: 2.25rem !important;
+    padding: 0 !important;
+    flex-grow: 0;
+  }
+
+  .search-input {
+    padding: $sp-2 $sp-2 $sp-2 2rem !important;
+    font-size: $font-size-3;
+    border: $border $border-color;
+    border-radius: $border-radius;
+  }
+
+  .search-label {
+    padding-left: 0.6rem !important;
+  }
+}
+
+.search-active .side-bar {
+  z-index: 2;
+}
+
+// The sidebar's first entry and the page's first heading line up at the top, close under the sidebar header.
+@include mq(md) {
+  .site-nav {
+    flex: 0 1 auto;
+    padding-top: $sp-4;
+  }
+
+  .main-content-wrap {
+    padding-top: $header-height + $sp-3;
+  }
+
+  .main-content main > :first-child {
+    margin-top: 0.4rem;
+  }
+}
+
+// Example prompts: italic, without the grey bar
+.main-content blockquote {
+  padding-left: 0;
+  border-left: 0;
+  font-style: italic;
+}

@@ -53,7 +53,6 @@ def prompt_text(p):
 
 class ImageView(QWidget):
     """Letterboxes a pixmap (from the cache, or a live preview) into its rect; placeholder until available."""
-    doubleClicked = Signal()
 
     def __init__(self, natural, cache=None, path=None, parent=None):
         super().__init__(parent)
@@ -100,9 +99,6 @@ class ImageView(QWidget):
         painter.fillRect(box, QColor(0, 0, 0, 150))
         painter.setPen(Qt.white)
         painter.drawText(box, Qt.AlignCenter, self.text)
-
-    def mouseDoubleClickEvent(self, _):
-        self.doubleClicked.emit()
 
 
 class Card(QFrame):
@@ -189,6 +185,7 @@ CARD_TIPS = {
     "Reuse settings": "Put this picture's prompt and settings back in the controls",
     "Copy seed": "Copy the seed number",
     "Copy prompt": "Copy the prompt text",
+    "Open in Preview": "Open the picture in the Mac's Preview app",
     "Show in Finder": "Show the picture's folder in Finder",
     "Delete": "Delete this picture and its settings permanently",
 }
@@ -212,15 +209,14 @@ class EntryCard(Card):
         size = QImageReader(self.path).size()
         self.image = ImageView(size if size.isValid() else QSize(entry.params.width, entry.params.height),
                                cache, self.path)
-        self.image.setToolTip("Double-click to open")
-        self.image.doubleClicked.connect(lambda: self.open_.emit(entry))
         self.layout_.addWidget(self.image)
         self.caption(summary(entry.params, entry.elapsed))
         self.caption(prompt_text(entry.params), muted=True, rich=True)
         actions = [("Generate similar image", self.vary, None), ("Use as input", self.use_input, None),
                    ("Describe image", self.describe, None),
                    ("Reuse settings", self.reuse, None), ("Copy seed", self.copySeed, "copy"),
-                   ("Copy prompt", self.copyPrompt, "copy"), ("Show in Finder", self.reveal, "folder"),
+                   ("Copy prompt", self.copyPrompt, "copy"), ("Open in Preview", self.open_, None),
+                   ("Show in Finder", self.reveal, "folder"),
                    ("Delete", self.trash, "trash")]
         buttons = []
         for text, signal, name in actions:
