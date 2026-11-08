@@ -1,6 +1,7 @@
 ---
 title: Troubleshooting
-nav_order: 13
+parent: About
+nav_order: 2
 ---
 
 # Troubleshooting
@@ -24,8 +25,9 @@ large apps, and use smaller sizes. See [Speed and memory](performance.md).
 **Describing or enhancing seems to run forever.** With **Think first** on it can take several minutes; the token
 count shows it's working. Turn Think first off for quicker answers.
 
-**Blokjutsu won't open.** Run the installer line again. If it still fails, open Terminal and run
-`~/Library/Application\ Support/Blokjutsu.noindex/runtime/bin/python -m blokjutsu`; the error appears in the Terminal.
+**Blokjutsu won't open.** Download it again and replace the copy in Applications. If it still won't open, the
+reason is at the end of `console.log` in the `logs` folder of `~/Library/Application Support/Blokjutsu.noindex`;
+include it when you report the problem.
 
 **Opening it a second time just brings the window forward.** That's deliberate: only one Blokjutsu runs at once.
 

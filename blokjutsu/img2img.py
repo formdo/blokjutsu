@@ -15,6 +15,17 @@ from __future__ import annotations
 from PIL import Image, ImageOps
 
 MIN_STRENGTH = 0.02
+MIN_CHANGE = 0.01           # the smallest Change the controls offer (σ₀ = 0.1)
+
+
+def change_to_sigma(change):
+    """The Change control is σ₀²: the square spreads the useful range near σ₀ = 1 over more of the control.
+    Settings files keep σ₀ itself (init_strength), so older files still mean the same thing."""
+    return change ** 0.5
+
+
+def sigma_to_change(sigma):
+    return sigma * sigma
 
 
 def cover(image, width, height):

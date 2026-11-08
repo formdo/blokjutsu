@@ -167,16 +167,14 @@ class ControlsPanel(QWidget):
         self.generate_button.clicked.connect(self.generateRequested)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(MARGIN, MARGIN - 4, MARGIN, MARGIN)
+        layout.setContentsMargins(MARGIN, 10, MARGIN, MARGIN)
         layout.setSpacing(8)
         layout.addLayout(captioned(heading(indented(labelled("Prompt", "prompt")), char_count(self.prompt),
                                            self.enhance_button), self.prompt, self.prompt_handle))
         layout.addSpacing(2)
         layout.addLayout(captioned(heading(indented(labelled("Negative prompt", "negative_prompt")),
                                            char_count(self.negative)), self.negative, self.negative_handle))
-        layout.addSpacing(6)
-        layout.addWidget(self.generate_button)
-        layout.addSpacing(10)
+        layout.addSpacing(12)
         layout.addLayout(self.main_form)
         layout.addSpacing(14)
         layout.addWidget(hairline())
@@ -355,8 +353,8 @@ class ControlsPanel(QWidget):
         self.clear_mask.clicked.connect(lambda: self.set_mask(""))
         self.clear_mask.setVisible(False)
         self.input_strength_slider = QSlider(Qt.Horizontal)
-        self.input_strength_slider.setRange(int(I.MIN_STRENGTH * 100), 100)
-        self.input_strength = dspin(I.MIN_STRENGTH, 1, 0.05)
+        self.input_strength_slider.setRange(round(I.MIN_CHANGE * 100), 100)
+        self.input_strength = dspin(I.MIN_CHANGE, 1, 0.05)
         self.input_strength.setFixedWidth(84)
         self.input_strength_slider.valueChanged.connect(lambda v: self.input_strength.setValue(v / 100))
         self.input_strength.valueChanged.connect(
@@ -384,7 +382,7 @@ class ControlsPanel(QWidget):
         self.input_block = QWidget()
         self.input_block.setLayout(f)
         self.input_block.setVisible(False)
-        self.input_strength.setValue(P.Params().init_strength)
+        self.input_strength.setValue(I.sigma_to_change(P.Params().init_strength))
         self._input_changed("")
 
     def _align_section_switches(self):
@@ -460,8 +458,16 @@ class ControlsPanel(QWidget):
     def _input_params(self):
         if not (self.input_toggle.isChecked() and self.input_well.path):
             return dict(init_image="", mask_image="")
-        return dict(init_image=self.input_well.path, init_strength=self.input_strength.value(),
-                    mask_image=self.mask_path)
+        return dict(init_image=self.input_well.path, init_strength=self._sigma(), mask_image=self.mask_path)
+
+    def _sigma(self):
+        """σ₀ for the shown Change; an exact σ₀ loaded from settings is kept while the rounded display matches it,
+        so Reuse settings reproduces older images exactly."""
+        change = self.input_strength.value()
+        exact = getattr(self, "loaded_sigma", None)
+        if exact is not None and round(I.sigma_to_change(exact), 2) == round(change, 2):
+            return exact
+        return I.change_to_sigma(change)
 
     def _set_variation(self, strength, from_slider=False, from_spin=False):
         if not from_spin:
@@ -676,7 +682,8 @@ class ControlsPanel(QWidget):
             self.input_well.set_path(p.init_image)
             self.input_well.blockSignals(False)
             self._input_changed(p.init_image, keep_mask=True)
-            self.input_strength.setValue(p.init_strength)
+            self.input_strength.setValue(I.sigma_to_change(p.init_strength))
+            self.loaded_sigma = p.init_strength
         self.set_mask(p.mask_image if p.init_image else "")
         self.set_input_open(bool(p.init_image))
 

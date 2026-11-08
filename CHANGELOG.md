@@ -1,6 +1,15 @@
 # Changelog
 
-## 1.0.0rc2 (unreleased)
+## 1.0.0rc3 (unreleased)
+
+- Generate stays at the top of the controls while they scroll
+- The Change control shows σ₀², spreading its useful range; older settings files keep their meaning
+- A larger picture in the empty history
+- User's Guide: the download button first; the sidebar grouped into Getting started, Making images, Reference,
+  and About; a page on describing images; menus merged into Controls; timings for an M5 Max; the install page
+  for the disk image only; and the developer material moved to CONTRIBUTING.md
+
+## 1.0.0rc2 (2026-11-06)
 
 - A signed and notarized .dmg for installing without Terminal (`scripts/make_dmg.sh`), with Download for Mac
   buttons in the README and the User's Guide

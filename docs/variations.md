@@ -1,6 +1,7 @@
 ---
 title: Variations
-nav_order: 9
+parent: Making images
+nav_order: 4
 ---
 
 # Variations

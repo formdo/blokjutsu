@@ -5,67 +5,55 @@
 **A local, permissively licensed, open-source Mac app for generating and editing images from text prompts with
 the open-weight [MOSS-Image](https://github.com/OpenMOSS/MOSS-Image) model.**
 
-- **Local.** The model runs locally on your Mac. Prompts and images never leave your machine.
-- **Permissive open source ([Apache 2.0](https://en.wikipedia.org/wiki/Apache_License)).** The app, MOSS-Image's
-  code, and MOSS-Image's model weights are all under the Apache License 2.0. Use them for anything, commercial or
-  not, and change and share them, with no restrictions on what you make.
-- **Download once.** The image model (about 30 GB) and the optional captioning model (2 GB) are downloaded once,
-  when you ask. After that, everyday use doesn't go online at all.
+[![Download for Mac](https://img.shields.io/badge/-Download_for_Mac-0071e3?style=flat)](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg)
+[![User's Guide](https://img.shields.io/badge/-User%27s_Guide-555555?style=flat)](https://formdo.github.io/blokjutsu/)
 
-**Simple on purpose:** a small set of controls designed to work together and to be quick to learn.
-
-[![Download for Mac](https://img.shields.io/badge/-Download_for_Mac-2f6fde?style=flat)](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg)
-
-**Using Blokjutsu?** Start with the [User's Guide](https://formdo.github.io/blokjutsu/): installing, a tour of the
-window, writing prompts, and every control explained.
+To use Blokjutsu, download it and start with the [User's Guide](https://formdo.github.io/blokjutsu/). The rest of
+this page is for developers.
 
 ![The Blokjutsu window: controls on the left; on the right, an image of three bowls of ice cream on a diner counter with handwritten cards reading CHOCOLATE, CHERRY, and PLAIN](docs/assets/screenshots/main-window.webp)
 
-## What Blokjutsu does
+## What it is
 
-- Text to image, image to image, variations, inpainting, outpainting, cropping, and upscaling
-- Describe image and Enhance prompt, written by MOSS-Image's own text encoder
-- Live previews, a scrolling history, and each image's settings saved beside it
-
-## Open source all the way down
-
-With Blokjutsu, the model, the code that runs it, and the app around it are all yours to run, keep, and adapt.
-
-Every part of Blokjutsu is released under the [Apache License 2.0](LICENSE), a
-[permissive](https://en.wikipedia.org/wiki/Comparison_of_free_and_open-source_software_licenses) open-source
-license:
-
-- **Blokjutsu's source code**, in this repository
-- **MOSS-Image's code**, the pipeline that turns a prompt into an image
-- **MOSS-Image's model weights**, including the Qwen3.5-9B text encoder and FLUX.2 image decoder they contain
-
-Apache 2.0 lets anyone use, study, change, and share all of it, for any purpose, commercial or not, at no cost,
-and with no sign-up. The conditions are light: keep the license and copyright notices, and say what you changed.
-It also grants the patent rights needed to use the code. The libraries Blokjutsu builds on are open source too
-(see [What it uses](#what-it-uses)).
+- **A Mac app** (PySide6/Qt) around MOSS-Image's diffusers pipeline, running on the Apple GPU through PyTorch's
+  MPS backend: text to image, image to image, variations, inpainting, outpainting, cropping, and upscaling, with
+  live previews and a scrolling history
+- **Describe image and Enhance prompt,** written by MOSS-Image's own text encoder (Qwen3.5-9B) with its output
+  layer re-attached
+- **Local:** models are downloaded once, on request, from a separate process; the app itself runs with the Hugging
+  Face libraries in offline mode and never goes online
+- **Open source all the way down:** the app, MOSS-Image's code, and its weights are all under the
+  [Apache License 2.0](LICENSE), a
+  [permissive](https://en.wikipedia.org/wiki/Comparison_of_free_and_open-source_software_licenses) license
 
 ## Requirements
 
 - A Mac with Apple silicon (M1 or later) and macOS 12.3 or later
-- 32 GB of memory or more; 48 GB or more is comfortable, and smaller Macs work slowly, if at all
+- 32 GB of memory or more; 48 GB or more is comfortable
 - About 40 GB of free disk space, mostly for the model
 
 ## Install
 
-**Mac users:** download the disk image with the **Download for Mac** button at the top (1.0.0rc2, 375 MB), open it, and drag Blokjutsu to
-Applications. Or install from Terminal by pasting
+**Disk image:** the [Download for Mac](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc2/Blokjutsu-1.0.0rc2.dmg) button above (1.0.0rc2, about 360 MB). Open it and drag Blokjutsu to
+Applications.
+
+**Terminal installer:** installs a private Python with the tested library versions into
+`~/Library/Application Support/Blokjutsu.noindex/` and builds `~/Applications/Blokjutsu.app`. Nothing else on
+the Mac is changed. [Read it](docs/install.sh) first if you like.
 
 ```sh
 curl -LsSf https://formdo.github.io/blokjutsu/install.sh | sh
 ```
 
-This installs Python and Blokjutsu into `~/Library/Application Support/Blokjutsu.noindex/` and puts
-**Blokjutsu** in your Applications folder. Nothing else on your Mac is changed. See the
-[User's Guide](https://formdo.github.io/blokjutsu/install.html) for details and uninstalling.
+To uninstall the app it installed (keeping images, settings, and the model):
 
-**Python developers:** Blokjutsu needs Python 3.10 or later. We strongly suggest installing it in its own virtual
-environment. The exact library versions it was tested with are in [constraints.txt](constraints.txt), which pip
-can use with `-c constraints.txt`.
+```sh
+curl -LsSf https://formdo.github.io/blokjutsu/install.sh | sh -s -- --uninstall
+```
+
+**From PyPI:** Blokjutsu needs Python 3.10 or later; a virtual environment is strongly recommended. The exact
+library versions it was tested with are in [constraints.txt](constraints.txt), which pip can use with
+`-c constraints.txt`.
 
 ```sh
 python3 -m venv .venv
@@ -73,6 +61,12 @@ source .venv/bin/activate
 pip install blokjutsu
 blokjutsu
 ```
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) covers setting up a development environment, running the tests, the design
+and modules, building the .dmg, and releasing. The User's Guide's
+[Technical notes](https://formdo.github.io/blokjutsu/technical-notes.html) explain how each control works.
 
 ## Built on MOSS-Image
 
@@ -132,38 +126,12 @@ Python libraries, installed alongside:
 
 ## Local by design
 
-Blokjutsu runs the model on your Mac's own processor and memory. It uses the internet only once to initially
-download the models, and then, only after a confirmation dialog. After the models are downloaded once, Blokjutsu
-works completely offline. It does not go online to generate, edit, or store images. It does not go online to
-check for updates to itself.
-
-Images are saved as plain PNG files that hold only the image. If you want, a setting in Advanced options also
-writes each image's prompt and settings into the PNG.
-
-### What Blokjutsu keeps on your Mac
-
-| what | where | Delete all history |
-|---|---|---|
-| your images, each with its settings and any image you started from | the Output folder you choose (by default `~/Library/Application Support/Blokjutsu.noindex/images/`) | deleted, in every Output folder used |
-| the log, for troubleshooting | `~/Library/Application Support/Blokjutsu.noindex/logs/` | emptied |
-| working copies from Select area to change | `…/Blokjutsu.noindex/work/` | deleted |
-| a small file the live preview needs, built from your images | `…/Blokjutsu.noindex/preview/` | deleted |
-| your settings, including the last prompt | `…/Blokjutsu.noindex/settings.json` | prompt reset, preferences kept |
-| the captioning model | `…/Blokjutsu.noindex/caption/` | kept |
-| the image model | `…/Blokjutsu.noindex/models/` | kept |
-| the app and the Python it runs on | `~/Applications/Blokjutsu.app`, `…/Blokjutsu.noindex/tools/`, and `…/Blokjutsu.noindex/runtime/` | kept |
-
-The whole `…/Blokjutsu.noindex` folder is kept out of Time Machine backups and Spotlight. To back up your images,
-choose an Output folder elsewhere, such as `~/Pictures/Blokjutsu`.
-
-**Delete all history** (in the File menu) removes everything made from your prompts and images and keeps your
-preferences and the models. The [User's Guide](https://formdo.github.io/blokjutsu/local.html) has the details, including what macOS itself
-remembers.
-
-## Contributing
-
-[CONTRIBUTING.md](CONTRIBUTING.md) explains how to set up a development environment, run the tests, and build the
-Mac app. Architecture and technical notes are in the [developer pages](https://formdo.github.io/blokjutsu/developers.html).
+Blokjutsu uses the internet only to download the models, once, and only after a confirmation dialog; it does not
+go online to generate, edit, or store images, or to check for updates. Everything it writes is kept in
+`~/Library/Application Support/Blokjutsu.noindex`, out of Time Machine backups and Spotlight, and PNGs hold only
+the image unless the user turns on Settings in PNG. The User's Guide's
+[Running locally](https://formdo.github.io/blokjutsu/local.html) lists every file and what Delete all history does
+with it.
 
 ## Roadmap
 

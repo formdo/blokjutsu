@@ -10,7 +10,8 @@ from pathlib import Path
 from PySide6.QtCore import QByteArray, Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QGuiApplication, QKeySequence, QTextCursor
 from PySide6.QtWidgets import (
-    QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox, QScrollArea, QSplitter,
+    QApplication, QFileDialog, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QScrollArea, QSplitter,
+    QVBoxLayout, QWidget,
 )
 
 from .. import __version__
@@ -103,12 +104,23 @@ class MainWindow(QMainWindow):
         self.controls = ControlsPanel()
         self.history = HistoryView(cache_mb=int(self.settings.get("image_cache_mb", 4096)))
         self.history.card_hooks = self._hook_card
-        left = QScrollArea()
-        left.setWidget(self.controls)
-        left.setWidgetResizable(True)
-        left.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll = QScrollArea()
+        scroll.setWidget(self.controls)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        theme.window_background(scroll)
+        left = QWidget(objectName="panelContent")    # Generate stays put above the scrolling controls
+        left.setAttribute(Qt.WA_StyledBackground)
+        column = QVBoxLayout(left)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(0)
+        bar = QHBoxLayout()
+        bar.setContentsMargins(theme.MARGIN, theme.MARGIN - 4, theme.MARGIN, 6)
+        bar.addWidget(self.controls.generate_button)
+        column.addLayout(bar)
+        column.addWidget(scroll, 1)
         left.setMinimumWidth(400)
-        theme.window_background(left)
         splitter = QSplitter()
         splitter.setHandleWidth(1)
         splitter.setChildrenCollapsible(False)

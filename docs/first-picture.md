@@ -1,6 +1,7 @@
 ---
 title: Your first picture
-nav_order: 3
+parent: Getting started
+nav_order: 2
 ---
 
 # Your first picture

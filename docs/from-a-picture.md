@@ -1,6 +1,7 @@
 ---
 title: Working from a picture
-nav_order: 8
+parent: Making images
+nav_order: 3
 ---
 
 # Working from a picture
@@ -21,14 +22,14 @@ Under the picture: its original size, and these buttons.
 
 ## Change
 
-**Change** sets how far the new picture may move from yours, from 0.02 to 1. The
-[examples](examples.md#starting-from-a-picture) show a baseball card at Change 0.25 to 0.98.
+**Change** sets how far the new picture may move from yours, from 0.01 to 1. The
+[examples](examples.md#starting-from-a-picture) show a baseball card across the range.
 
 | Change | result |
 |---|---|
-| 0.02–0.1 | almost identical: cleaner, sharper, slightly retouched |
-| 0.2–0.4 | same picture, restyled or with details redone |
-| 0.5–0.7 | same composition and colors, new content |
+| 0.01–0.05 | almost identical: cleaner, sharper, slightly retouched |
+| 0.05–0.2 | same picture, restyled or with details redone |
+| 0.25–0.5 | same composition and colors, new content |
 | 1.0 | only the prompt matters; your picture is ignored, except outside a selected area |
 
 ## Prompting
@@ -54,7 +55,7 @@ Then write a prompt for the whole picture as it should end up, set **Change**, a
 selected area changes; the rest stays exactly as it was.
 
 - Replace something: **Change 1.0**, and a prompt describing what should be there
-- Fix or restyle something: **Change 0.4–0.7**
+- Fix or restyle something: **Change 0.2–0.5**
 
 ![The main window after the change: the cropped picture with the card now reading VANILLA at the top of the history, the original three-bowl picture below it, and on the left the starting picture with its painted card and Change set to 0.90](assets/screenshots/inpainted.webp)
 
@@ -76,6 +77,6 @@ MOSS-Image makes a good upscaler:
 
 1. **Start from image** with the picture, then **Match image size**.
 2. In the **MP** menu, choose ×1.5, ×2, or more (up to about 4 megapixels).
-3. Set **Change** low: **0.02** keeps the picture exactly and sharpens it, quickly; **0.1–0.3** lets the model add
-   new fine detail, more slowly.
+3. Set **Change** low: **0.01** keeps the picture exactly and sharpens it, quickly; **0.05–0.1** lets the model
+   add new fine detail, more slowly.
 4. Use the picture's own prompt (**Reuse settings**, then switch Start from image back on) or **Describe image**.

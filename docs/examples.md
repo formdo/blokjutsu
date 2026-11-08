@@ -1,6 +1,7 @@
 ---
 title: Examples
-nav_order: 7
+parent: Reference
+nav_order: 2
 ---
 
 # Examples
@@ -76,7 +77,7 @@ exact words, in any language, put them in the prompt in quotation marks (see [Wr
 
 ## Size
 
-The same prompt and seed at six sizes, from 384 × 256 (0.1 MP) to 2496 × 1664 (4.2 MP). 50 steps, Adherence 4.
+The same prompt and seed at six sizes, from 384 × 256 (0.1 megapixels) to 2496 × 1664 (4.2 megapixels). 50 steps, Adherence 4.
 
 > a crowded European street scene in which two college boys in matching maize and blue hoodies saying "Michigan"
 > and matching maize and blue hats with an M on them in yellow, recording a tik-tok video where a vertical phone on a
@@ -88,8 +89,8 @@ The same prompt and seed at six sizes, from 384 × 256 (0.1 MP) to 2496 × 1664 
 Negative prompt: *blurry, low quality*
 
 <table class="examples">
-  <tr><td><a href="assets/examples/sizes/basketball-0384.webp"><img src="assets/examples/sizes/basketball-0384.webp" alt="384 × 256 (0.1 MP)" loading="lazy"></a><br>384 × 256 (0.1 MP)</td><td><a href="assets/examples/sizes/basketball-0768.webp"><img src="assets/examples/sizes/basketball-0768.webp" alt="768 × 512 (0.4 MP)" loading="lazy"></a><br>768 × 512 (0.4 MP)</td><td><a href="assets/examples/sizes/basketball-1152.webp"><img src="assets/examples/sizes/basketball-1152.webp" alt="1152 × 768 (0.9 MP)" loading="lazy"></a><br>1152 × 768 (0.9 MP)</td></tr>
-  <tr><td><a href="assets/examples/sizes/basketball-1536.webp"><img src="assets/examples/sizes/basketball-1536.webp" alt="1536 × 1024 (1.6 MP)" loading="lazy"></a><br>1536 × 1024 (1.6 MP)</td><td><a href="assets/examples/sizes/basketball-1920.webp"><img src="assets/examples/sizes/basketball-1920.webp" alt="1920 × 1280 (2.5 MP)" loading="lazy"></a><br>1920 × 1280 (2.5 MP)</td><td><a href="assets/examples/sizes/basketball-2496.webp"><img src="assets/examples/sizes/basketball-2496.webp" alt="2496 × 1664 (4.2 MP)" loading="lazy"></a><br>2496 × 1664 (4.2 MP)</td></tr>
+  <tr><td><a href="assets/examples/sizes/basketball-0384.webp"><img src="assets/examples/sizes/basketball-0384.webp" alt="384 × 256 (0.1 megapixels)" loading="lazy"></a><br>384 × 256 (0.1 megapixels)</td><td><a href="assets/examples/sizes/basketball-0768.webp"><img src="assets/examples/sizes/basketball-0768.webp" alt="768 × 512 (0.4 megapixels)" loading="lazy"></a><br>768 × 512 (0.4 megapixels)</td><td><a href="assets/examples/sizes/basketball-1152.webp"><img src="assets/examples/sizes/basketball-1152.webp" alt="1152 × 768 (0.9 megapixels)" loading="lazy"></a><br>1152 × 768 (0.9 megapixels)</td></tr>
+  <tr><td><a href="assets/examples/sizes/basketball-1536.webp"><img src="assets/examples/sizes/basketball-1536.webp" alt="1536 × 1024 (1.6 megapixels)" loading="lazy"></a><br>1536 × 1024 (1.6 megapixels)</td><td><a href="assets/examples/sizes/basketball-1920.webp"><img src="assets/examples/sizes/basketball-1920.webp" alt="1920 × 1280 (2.5 megapixels)" loading="lazy"></a><br>1920 × 1280 (2.5 megapixels)</td><td><a href="assets/examples/sizes/basketball-2496.webp"><img src="assets/examples/sizes/basketball-2496.webp" alt="2496 × 1664 (4.2 megapixels)" loading="lazy"></a><br>2496 × 1664 (4.2 megapixels)</td></tr>
 </table>
 
 What to notice:

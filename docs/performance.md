@@ -1,6 +1,7 @@
 ---
 title: Speed and memory
-nav_order: 11
+parent: Reference
+nav_order: 3
 ---
 
 # Speed and memory
@@ -10,21 +11,25 @@ nav_order: 11
 Time grows with **Steps** and with picture size (a little faster than the number of pixels). The card for each
 picture shows the time so far and an estimate of the time left, and the time taken is saved with it.
 
-Measured on a Mac Studio with an M3 Ultra (28-core CPU, 60-core GPU) and 256 GB of memory, one picture at a time:
+Measured one image at a time on two Macs, in minutes and seconds:
 
-| size | MP | 20 steps | 50 steps |
-|---|---|---|---|
-| 256 × 256 | 0.07 | 0:11 | 0:27 |
-| 512 × 512 | 0.26 | 0:33 | 1:23 |
-| 512 × 768 | 0.39 | 0:50 | 2:04 |
-| 1024 × 1024 | 1.0 | 2:17 | 5:42 |
-| 1408 × 1408 | 2.0 | 4:50 | 12:05 |
-| 2048 × 2048 | 4.2 | 12:55 | |
+- **M3 Ultra:** Mac Studio (2025), 28-core CPU, 60-core GPU, 256 GB of memory
+- **M5 Max:** 14-inch MacBook Pro (2026), 18-core CPU, 40-core GPU, 64 GB of memory
+
+| size | megapixels | M3 Ultra, 20 steps | M3 Ultra, 50 steps | M5 Max, 20 steps | M5 Max, 50 steps |
+|---|---|---|---|---|---|
+| 256 × 256 | 0.07 | 0:11 | 0:27 | 0:05 | 0:11 |
+| 512 × 512 | 0.26 | 0:33 | 1:23 | 0:15 | 0:40 |
+| 512 × 768 | 0.39 | 0:50 | 2:04 | 0:24 | 1:01 |
+| 1024 × 1024 | 1.0 | 2:17 | 5:42 | 1:15 | 3:17 |
+| 1408 × 1408 | 2.0 | 4:50 | 12:05 | 3:24 | 8:27 |
+| 2048 × 2048 | 4.2 | 12:55 | | 9:25 | |
 
 Time follows the Mac's graphics processor, not its memory: once there's enough memory for the model, more doesn't
 help. Within a chip generation, a Mac with half as many graphics cores takes roughly twice as long. Newer chips
 are faster per core: the M5 family adds matrix units to each graphics core, which is exactly the arithmetic
-MOSS-Image spends its time on.
+MOSS-Image spends its time on. Here the M5 Max, with two thirds of the graphics cores, is about twice as fast as
+the M3 Ultra for small images, and about 1.4 times as fast at 2 megapixels and up.
 
 Ways to go faster:
 

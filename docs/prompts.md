@@ -1,6 +1,7 @@
 ---
 title: Writing prompts
-nav_order: 4
+parent: Making images
+nav_order: 1
 ---
 
 # Writing prompts
@@ -81,14 +82,8 @@ has the details.
 
 - **Enhance prompt** (above the prompt box) rewrites your prompt in three lengths. Pick one with
   **Use as prompt**; ⌘Z brings your own prompt back.
-- **Describe image** writes a description of any picture, a good starting prompt for something similar.
-
-![The Describe image window: a 1942 black-and-white photograph of two women and a child cycling in a park, with short, medium, and long descriptions beside it, each with Use as prompt and Copy buttons](assets/screenshots/describe.webp)
-
-Describe image on a 1942 photograph. The long description even reads the negative number in the corner.
-*Photograph: Marjory Collins, "Sunday cyclists in East Potomac Park, Washington, D.C.", June–July 1942. Library of
-Congress, Farm Security Administration/Office of War Information collection; public domain.
-[loc.gov/item/2017825632](https://www.loc.gov/item/2017825632/)*
+- **Describe image** writes a description of any picture, a good starting prompt for something similar. See
+  [Describing images](describing.md).
 
 The character count beside each box is just for reference; MOSS-Image reads up to about 4,000 tokens (roughly
 15,000 characters). The limit can be lowered with **Max tokens** in Advanced options.
