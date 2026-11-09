@@ -1,0 +1,69 @@
+---
+layout: table_wrappers
+---
+{%- comment -%}
+  Home page: no sidebar. A slim top bar, the page, and a dark footer whose
+  columns are built from the site's nav (parents with children, then the rest).
+{%- endcomment -%}
+{%- assign top_pages = site.html_pages | where_exp: "p", "p.parent == nil" | where_exp: "p", "p.nav_order != nil" | where_exp: "p", "p.nav_exclude != true" | sort: "nav_order" -%}
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'en-US' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ '/assets/css/just-the-docs-default.css' | relative_url }}">
+  {% include_cached favicon.html %}
+  {% seo %}
+  {% include head_custom.html %}
+</head>
+<body class="landing-page">
+  <a class="skip-to-main" href="#main-content">Skip to main content</a>
+
+  <header class="landing-bar">
+    <a class="landing-brand" href="{{ '/' | relative_url }}">{% include title.html %}</a>
+    <nav class="landing-links" aria-label="Site">
+      {%- for p in top_pages -%}
+        {%- unless p.url == page.url or p.nav_order > 4 -%}
+          <a href="{{ p.url | relative_url }}">{{ p.short_title | default: p.title }}</a>
+        {%- endunless -%}
+      {%- endfor -%}
+    </nav>
+  </header>
+
+  <main id="main-content" class="main-content landing">
+    {{ content }}
+  </main>
+
+  <footer class="landing-footer">
+    <div class="landing-footer-inner">
+      <div class="landing-footer-brand">
+        <a class="landing-brand" href="{{ '/' | relative_url }}">{% include title.html %}</a>
+        <p>Free and open source under the Apache License 2.0.
+        Built on MOSS-Image; not affiliated with its authors.</p>
+      </div>
+      {%- assign others = "" | split: "" -%}
+      {%- for p in top_pages -%}
+        {%- if p.url == page.url -%}{%- continue -%}{%- endif -%}
+        {%- if p.has_children -%}
+          {%- assign kids = site.html_pages | where: "parent", p.title | sort: "nav_order" -%}
+          <div class="landing-footer-col">
+            <h2><a href="{{ p.url | relative_url }}">{{ p.title }}</a></h2>
+            <ul>
+              {%- for k in kids -%}<li><a href="{{ k.url | relative_url }}">{{ k.title }}</a></li>{%- endfor -%}
+            </ul>
+          </div>
+        {%- else -%}
+          {%- assign others = others | push: p -%}
+        {%- endif -%}
+      {%- endfor -%}
+      <div class="landing-footer-col">
+        <h2>About</h2>
+        <ul>
+          {%- for p in others -%}<li><a href="{{ p.url | relative_url }}">{{ p.title }}</a></li>{%- endfor -%}
+          <li><a href="https://github.com/formdo/blokjutsu">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

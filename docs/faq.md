@@ -1,5 +1,6 @@
 ---
 title: Frequently asked questions
+short_title: FAQ
 nav_order: 4
 ---
 

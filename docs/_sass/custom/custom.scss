@@ -12,16 +12,6 @@ table.examples img {
   height: auto;
 }
 
-p.download {
-  margin: 0.5rem 0 2rem;
-  text-align: center;
-
-  span {
-    color: $grey-dk-000;
-    font-size: 0.875rem;
-  }
-}
-
 .btn.btn-download {
   margin-bottom: 0.5rem;
   padding: 0.75rem 2.5rem;
@@ -58,20 +48,8 @@ p.download {
   letter-spacing: -0.01em;
 }
 
-.intro {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 2rem;
+@import "custom/landing";
 
-  ul {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-  }
-
-  @media (max-width: 50rem) {
-    grid-template-columns: 1fr;
-  }
-}
 
 
 .main-content h2 + p:has(> img:first-child) {
@@ -96,8 +74,11 @@ p.download {
     width: $nav-width;
   }
 
+  // Optically aligned: the box starts 2px left of the menu text, so its border, not its text, lines up.
   .search {
+    width: calc(100% + 2px);
     height: 2.25rem !important;
+    margin-left: -2px;
     padding: 0 !important;
     flex-grow: 0;
   }
@@ -118,7 +99,7 @@ p.download {
   z-index: 2;
 }
 
-// The sidebar's first entry and the page's first heading line up at the top, close under the sidebar header.
+// The page's title sits high, level with the sidebar header, rather than with the first menu entry.
 @include mq(md) {
   .site-nav {
     flex: 0 1 auto;
@@ -126,11 +107,11 @@ p.download {
   }
 
   .main-content-wrap {
-    padding-top: $header-height + $sp-3;
+    padding-top: $sp-6;
   }
 
   .main-content main > :first-child {
-    margin-top: 0.4rem;
+    margin-top: 0;
   }
 }
 
@@ -139,4 +120,10 @@ p.download {
   padding-left: 0;
   border-left: 0;
   font-style: italic;
+}
+
+// Page titles a step bolder than section headings (the theme's h1 is light, its h2–h6 medium).
+.main-content h1 {
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
