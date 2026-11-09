@@ -6,13 +6,17 @@ plugins:
   - jekyll-relative-links
 logo: /assets/icon.png
 favicon_ico: /assets/icon.png
-color_scheme: light
+color_scheme: blokjutsu
 search_enabled: true
 heading_anchors: true
-footer_content: >-
-  Blokjutsu is an independent app for <a href="https://github.com/OpenMOSS/MOSS-Image">MOSS-Image</a> by the
-  OpenMOSS Team and MOSI.AI. Apache License 2.0.
+# Large picture in link previews; set per page with `image:` in front matter.
+twitter:
+  card: summary_large_image
 baseurl: /blokjutsu
+# The current release, used by _includes/download.html and the install steps.
+release:
+  version: 1.0.0rc3
+  size: 360 MB
 exclude:
   - README.md
   - Gemfile

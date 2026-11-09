@@ -1,51 +1,72 @@
 ---
 title: Welcome
+layout: landing
 nav_order: 1
-description: A local, permissively licensed, open-source Mac app for generating and editing images from text prompts with the open-weight MOSS-Image model.
+description: A Mac app for making and editing pictures from a written description with the open-weight MOSS-Image model. Free, open source, and local.
+image: /assets/hero/ice-cream.webp
 ---
 
-## What is Blokjutsu?
+<section class="hero">
+  <h1>Make and edit pictures from a description, on your Mac.</h1>
+  <figure>
+    <img src="assets/hero/ice-cream.webp" width="768" height="432"
+         alt="Three glass bowls of ice cream on a diner counter in morning light, with handwritten cards reading CHOCOLATE, CHERRY, and PLAIN">
+    <figcaption>
+      <span class="prompt">three glass bowls of ice cream on a diner counter in the morning light, chocolate ice
+      cream on the left, black cherry ice cream in the middle, and vanilla ice cream on the right, with folding
+      handwritten cards in front of them saying “CHOCOLATE”, “CHERRY” and “PLAIN”</span>
+      <span class="meta">768 × 432 · 20 steps · 44 seconds on a Mac Studio (M3 Ultra) ·
+      <a href="performance.html">other Macs</a></span>
+    </figcaption>
+  </figure>
+</section>
 
-<div class="intro" markdown="1">
-<div markdown="1">
-- Blokjutsu **generates images** from text descriptions.
-- Blokjutsu **edits and extends** any image based on a text description ([more](from-a-picture.md)).
-- Blokjutsu **adds captions** to any image ([more](describing.md)).
+{% include download.html %}
+
+<aside class="based-on">
+  <p><strong>Built on MOSS-Image.</strong> Blokjutsu is a Mac app for
+  <a href="https://github.com/OpenMOSS/MOSS-Image">MOSS-Image</a>, an open-weight image model from the OpenMOSS
+  Team and MOSI.AI. All of the picture-making is theirs. Blokjutsu is an independent project and is not
+  affiliated with either.</p>
+  <p class="more"><a href="credits.html">Credits and licenses</a></p>
+</aside>
+
+## Change a picture
+
+<div class="pair">
+  <figure><img src="assets/examples/from-image/cy-young-000.jpg" width="369" height="640" loading="lazy"
+    alt="A 1909–1911 baseball card of Cy Young"><figcaption>Start from a picture: a 1909–1911 baseball card</figcaption></figure>
+  <figure><img src="assets/examples/from-image/cy-young-085.webp" width="368" height="640" loading="lazy"
+    alt="The same pose redone as a modern color card with a red hat and a sunset"><figcaption>Describe the picture you want: a modern color card, red hat, golden-hour sunset</figcaption></figure>
 </div>
-<div markdown="1">
-- Blokjutsu is **simple on purpose**, with lightweight controls that work together.
-- Blokjutsu is **local**, so prompts and images never leave your Mac ([more](local.md)).
-- Blokjutsu is **permissive open source**, so you can use the images for anything ([more](credits.md)).
-</div>
-</div>
 
-<p class="download">
-  <a class="btn btn-download" href="https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc3/Blokjutsu-1.0.0rc3.dmg">Download for Mac</a><br>
-  <span>Blokjutsu 1.0.0rc3 (360 MB) · Mac with Apple silicon, 32 GB memory, 40 GB disk</span>
-</p>
+Keep the pose and change everything else, or paint over one part and change only that.
 
-## Getting started
+[Working from a picture](from-a-picture.md) [More examples](examples.md#starting-from-a-picture)
+{: .more}
 
-![The Blokjutsu window: controls on the left; on the right, a picture of three bowls of ice cream on a diner counter with handwritten cards reading CHOCOLATE, CHERRY, and PLAIN](assets/screenshots/main-window.webp)
+## Describe a picture
 
-1. Type a description in **Prompt**, for example:
+![The Describe image window: a 1942 photograph of two women and a child cycling in a park, with short, medium, and long descriptions beside it](assets/screenshots/describe.webp)
 
-   > three glass bowls of ice cream on a diner counter in the morning light, chocolate ice cream on the left,
-   > black cherry ice cream in the middle, and vanilla ice cream on the right, with folding handwritten cards in
-   > front of them saying "CHOCOLATE", "CHERRY" and "PLAIN"
+Three descriptions of a 1942 photograph, short to long, each ready to use as a prompt.
 
-2. Press **Generate** (or ⌘-Return).
-3. A card appears on the right. It shows the step it's on, the time taken so far, and the time left, and a
-   preview that sharpens as it goes. **Cancel** stops it.
+[Describing images](describing.md)
+{: .more}
 
-Every picture is saved automatically, with all of its settings, in the **Output** folder.
+## The whole app
 
-### What to try next
+![The Blokjutsu window: the controls on the left; on the right, the ice cream picture with its settings and buttons beneath it](assets/screenshots/main-window.webp)
 
-- Press **Generate** again: you get a different picture, because the **Seed** is new each time.
-- Make the prompt longer and more specific. MOSS-Image rewards detail; see [Writing prompts](prompts.md).
-- Click **Enhance prompt** to have the model write a more detailed version of your prompt.
-- On a picture you like, click **Generate similar image** for close [variations](variations.md).
-- Click **Use as input** to [start a new picture from it](from-a-picture.md).
-- Click the bold name of any control, such as **Seed** or **Change**, for a one-line explanation.
-- See what each setting does, side by side, in the [Examples](examples.md).
+One window. Every picture is saved with its prompt and settings, and any of them can be the start of the next.
+
+[Getting started](making-images.md)
+{: .more}
+
+## Stays on your Mac
+
+Blokjutsu runs MOSS-Image on your Mac's own processor and memory. Prompts and pictures never leave it; the
+internet is used only to download the model, when you ask.
+
+[What runs where](local.md)
+{: .more}

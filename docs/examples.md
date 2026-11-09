@@ -6,12 +6,13 @@ nav_order: 6
 
 # Examples
 
-Each grid below changes one setting and keeps everything else fixed, so you can see what that setting does.
-Click any image to see it full size. The images are exactly as Blokjutsu made them, saved without loss.
+Each grid below changes one setting and keeps everything else fixed, so you can see what that setting does;
+the last two sections show editing part of a picture and describing one. Each ends with a link to the page that
+explains it. Click any image to see it full size. The images are exactly as Blokjutsu made them, saved without loss.
 
 ## Samplers and steps
 
-The four [samplers](controls.md#samplers) at 5, 10, 20, 30, and 50 steps, all with the same prompt and seed:
+The four [samplers](reference.md#samplers) at 5, 10, 20, 30, and 50 steps, all with the same prompt and seed:
 
 > side view of a red tabby Maine coon cat lying on a bed in a ray of sunshine in the afternoon, shabby chic, 35mm
 > film grain
@@ -39,6 +40,9 @@ What to notice:
 
 So for this prompt, 20 steps with any of the first three is enough, and 30 is a safe choice in general. DPM++ 2M
 at 10 steps is a quick preview of the idea, though not of the exact picture you'd get with more steps.
+
+[Steps](reference.md#steps) [Samplers](reference.md#samplers)
+{: .more}
 
 ## Adherence
 
@@ -75,6 +79,9 @@ The Japanese lettering is decoration: MOSS-Image writes plausible-looking fragme
 Adherence 8 some bubbles drift into Chinese. To get
 exact words, in any language, put them in the prompt in quotation marks (see [Writing prompts](prompts.md#text-in-pictures)).
 
+[Adherence](reference.md#adherence) [Writing prompts](prompts.md)
+{: .more}
+
 ## Size
 
 The same prompt and seed at six sizes, from 384 × 256 (0.1 megapixels) to 2496 × 1664 (4.2 megapixels). 50 steps, Adherence 4.
@@ -101,6 +108,9 @@ What to notice:
   hands, the lettering, and the details the prompt asks for (the phone on its tripod, the crowd on the bridge)
   come out right more often. Small sizes are fine for trying out an idea.
 
+[Size](reference.md#size) [Speed and memory](performance.md)
+{: .more}
+
 ## Variations
 
 **Variations** at strengths 0, 0.10, 0.25, 0.50, 0.75, and 1.00, all from the same picture: the cat seed from
@@ -118,6 +128,9 @@ What to notice:
 - **Up to about 0.25, it's the same picture** with small changes: the skyline, the moon, the fur.
 - **At 0.5 and 0.75, the room and the light change** while the idea stays.
 - **At 1.0, it's a new picture,** as different as a new seed.
+
+[Variations](variations.md)
+{: .more}
 
 ## Starting from a picture
 
@@ -173,3 +186,33 @@ What to notice:
 - **What the card left open changes:** the face, hair, and beard, where the sun sits, how far the red sleeves
   reach. One seed brings the ball and a glove up in front of the body.
 - **A prompt can be followed too literally:** one seed prints the caption's quotation marks.
+
+[Working from a picture](from-a-picture.md#change)
+{: .more}
+
+## Changing part of a picture
+
+The ice cream picture from the [home page](index.md), cropped to two bowls in the area editor, with the card
+reading PLAIN painted so it can be rewritten:
+
+![The area editor: the ice cream picture cropped to the cherry and vanilla bowls, with the PLAIN card painted red so it can be rewritten](assets/screenshots/area-editor.webp)
+
+The result, with a prompt that names the cards "CHERRY" and "VANILLA", at **Change** 0.90. Only the painted card
+changed; the original is below it in the history.
+
+![The main window after the change: the cropped picture with the card now reading VANILLA at the top of the history, the original three-bowl picture below it, and on the left the starting picture with its painted card and Change set to 0.90](assets/screenshots/inpainted.webp)
+
+[Changing part of a picture](from-a-picture.md#changing-part-of-a-picture)
+{: .more}
+
+## Describing a picture
+
+![The Describe image window: a 1942 black-and-white photograph of two women and a child cycling in a park, with short, medium, and long descriptions beside it, each with Use as prompt and Copy buttons](assets/screenshots/describe.webp)
+
+Describe image on a 1942 photograph. The long description even reads the negative number in the corner.
+*Photograph: Marjory Collins, "Sunday cyclists in East Potomac Park, Washington, D.C.", June–July 1942. Library of
+Congress, Farm Security Administration/Office of War Information collection; public domain.
+[loc.gov/item/2017825632](https://www.loc.gov/item/2017825632/){:target="_blank"}*
+
+[Describing images](describing.md)
+{: .more}
