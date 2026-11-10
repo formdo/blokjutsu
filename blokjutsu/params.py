@@ -6,6 +6,8 @@ import math
 import secrets
 from dataclasses import asdict, dataclass, fields, replace
 
+from . import layout as L
+
 MODELS = {
     "MOSS-Image-SFT": "OpenMOSS-Team/MOSS-Image-SFT",
     "MOSS-Image-Base": "OpenMOSS-Team/MOSS-Image-Base",
@@ -55,6 +57,7 @@ class Params:
     init_strength: float = 0.5 ** 0.5   # σ₀ of the noise path; the Change control shows σ₀² (img2img.change_to_sigma)
     mask_image: str = ""            # inpainting: path to a grayscale PNG framed like init_image; white is
                                     # regenerated, black kept, gray (the feathered edge) blended
+    layout: str = ""                # a layout draft (layout.py) as JSON; when set, prompt is compiled from it
 
 
 ADVANCED = ("model", "sampler", "shift", "uncond_skip_layers", "slg_layers", "slg_scale",
@@ -76,6 +79,13 @@ def parse_layers(text):
 
 
 def validate(p, num_layers=None):
+    if p.layout:
+        try:
+            L.compile_prompt(L.loads(p.layout), p.width, p.height)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"The layout is not valid JSON ({exc.msg}).") from exc
+        except ValueError as exc:
+            raise ValueError(f"The layout isn't ready: {exc}") from exc
     if not p.prompt.strip():
         raise ValueError("Enter a prompt.")
     if p.width <= 0 or p.height <= 0 or p.width % 16 or p.height % 16:
@@ -207,12 +217,14 @@ def to_record(p, image_name="image.png", **extra):
         "blokjutsu": {"noise_device": p.noise_device, "sde_eta": p.sde_eta, "variation": p.variation,
                    "variation_seed": p.variation_seed, "variation_base": p.variation_base,
                    "init_image": p.init_image, "init_strength": p.init_strength, "mask_image": p.mask_image,
-                   **extra},
+                   **({"layout": L.loads(p.layout)} if p.layout else {}), **extra},
     }
 
 
 def _coerce(name, value):
     kind = type(getattr(Params(), name))
+    if kind is str and isinstance(value, dict):
+        return L.dumps(value)
     if kind is str and isinstance(value, (list, tuple)):
         return ",".join(map(str, value))
     if kind is bool:

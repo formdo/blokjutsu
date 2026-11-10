@@ -1,7 +1,7 @@
 ---
 title: Describing images
 parent: Making images
-nav_order: 2
+nav_order: 3
 ---
 
 # Describing images

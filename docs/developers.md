@@ -21,17 +21,24 @@ How each control works. In the app, clicking a label shows a one-line summary.
 
 ### Prompt
 
-**Prompt.** Natural language, comma-separated tags, or a JSON layout pasted verbatim (see
-[JSON layouts](#json-layouts)).
+**Prompt.** Natural language, comma-separated tags, or a layout (see [JSON layouts](#json-layouts)).
 
 Up to 4096 tokens; **Max tokens** in Advanced options lowers the limit. The model is multilingual: English has the
 most training data, and Chinese and other languages are also supported.
 
 ### JSON layouts
 
-A prompt that starts with `{` is a layout: an overall caption plus boxes, each with a label, a description, and,
-for text, the exact words. The model reads the JSON as text; Blokjutsu only checks that it parses and that the
-boxes fit the canvas. For a 1024 × 1024 image:
+The [layout editor](layouts.md) keeps a readable draft, MOSS-Image's "Pixel Layout draft": `width`, `height`,
+`"bbox_coord_space": "abs"`, `"bbox_format": "xyxy"` (pixels `[x1, y1, x2, y2]` from the top-left corner),
+`summary` (`caption`, optional `meta`, `canvas`, `palette`) and a flat `items` list (`label` object, character or
+text; `caption`; `bbox`; `text` for text items; optional `tags`, `palette`). It is saved in `parameters.json` under
+`blokjutsu.layout`. At Generate it is compiled, following MOSS-Image's `compile_prompt.py` with the same checks,
+to the form the model reads: one line of JSON with the boxes stretched to the picture's size and converted to
+centered `[y1, x1, y2, x2]`. That compiled form is the picture's `prompt`.
+
+A prompt typed as JSON is passed through unchanged; **Layout…** imports it into the editor if it is a draft or
+the centered form. Blokjutsu checks that typed JSON parses and that its boxes fit the canvas. For a
+1024 × 1024 image:
 
 ```json
 {

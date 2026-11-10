@@ -12,7 +12,8 @@ Click any control's bold name in the app for a one-line reminder.
 ## Prompt and negative prompt
 
 What you want, and what you don't. Drag the small handle under a box to make it taller. See
-[Writing prompts](prompts.md).
+[Writing prompts](prompts.md). **Layout…** opens the [layout editor](layouts.md); while a layout is in use, the
+prompt box shows its description, and a click opens it.
 
 ## Size
 

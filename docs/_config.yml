@@ -15,7 +15,7 @@ twitter:
 baseurl: /blokjutsu
 # The current release, used by _includes/download.html and the install steps.
 release:
-  version: 1.0.0rc3
+  version: 1.0.0rc4
   size: 360 MB
 exclude:
   - README.md

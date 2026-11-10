@@ -15,6 +15,9 @@ them from Hugging Face when the user asks it to.
 The captioning instructions in blokjutsu/describe.py are adapted from MOSS-Image's USERGUIDE.md (Apache License,
 Version 2.0); the changes are described in that file.
 
+blokjutsu/layout.py follows MOSS-Image's layout compiler (skills/moss-image-prompt-enhancer/scripts/
+compile_prompt.py, Apache License, Version 2.0); the changes are described at the top of that file.
+
 blokjutsu/moss_forward.py is adapted from the MOSS-Image transformer's forward pass (Apache License, Version
 2.0); the changes are described at the top of that file.
 

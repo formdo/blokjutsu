@@ -171,7 +171,7 @@ body.landing-page {
   }
 }
 
-// A before/after pair side by side.
+// A before/after pair side by side; .wide for landscape pictures.
 .pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -261,4 +261,8 @@ body.landing-page {
   @media (max-width: 40rem) {
     grid-column: 1 / -1;
   }
+}
+
+.pair.wide {
+  max-width: none;
 }

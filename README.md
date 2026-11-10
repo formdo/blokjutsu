@@ -5,7 +5,7 @@
 **A local, permissively licensed, open-source Mac app for generating and editing images from text prompts with
 the open-weight [MOSS-Image](https://github.com/OpenMOSS/MOSS-Image) model.**
 
-[![Download for Mac](https://img.shields.io/badge/-Download_for_Mac-0071e3?style=flat)](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc3/Blokjutsu-1.0.0rc3.dmg)
+[![Download for Mac](https://img.shields.io/badge/-Download_for_Mac-0071e3?style=flat)](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc4/Blokjutsu-1.0.0rc4.dmg)
 [![User's Guide](https://img.shields.io/badge/-User%27s_Guide-555555?style=flat)](https://formdo.github.io/blokjutsu/)
 
 To use Blokjutsu, download it and start with the [User's Guide](https://formdo.github.io/blokjutsu/). The rest of
@@ -34,7 +34,7 @@ this page is for developers.
 
 ## Install
 
-**Disk image:** the [Download for Mac](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc3/Blokjutsu-1.0.0rc3.dmg) button above (1.0.0rc3, about 360 MB). Open it and drag Blokjutsu to
+**Disk image:** the [Download for Mac](https://github.com/formdo/blokjutsu/releases/download/v1.0.0rc4/Blokjutsu-1.0.0rc4.dmg) button above (1.0.0rc4, about 360 MB). Open it and drag Blokjutsu to
 Applications.
 
 **Terminal installer:** installs a private Python with the tested library versions into

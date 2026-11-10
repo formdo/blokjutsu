@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit, QPushButton, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
+from .. import layout as L
 from .. import params as P
 from .. import img2img as I
 from .. import sizes as S
@@ -137,6 +138,15 @@ def unit(text):
 CUSTOM = "custom"
 
 
+class ClickLabel(QLabel):
+    clicked = Signal()
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mouseReleaseEvent(event)
+
+
 def form():
     f = QFormLayout()
     f.setLabelAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -155,6 +165,7 @@ class ControlsPanel(QWidget):
     describeRequested = Signal(str)          # image path
     enhanceRequested = Signal(str)           # prompt text
     maskRequested = Signal()
+    layoutRequested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -169,8 +180,11 @@ class ControlsPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(MARGIN, 10, MARGIN, MARGIN)
         layout.setSpacing(8)
-        layout.addLayout(captioned(heading(indented(labelled("Prompt", "prompt")), char_count(self.prompt),
-                                           self.enhance_button), self.prompt, self.prompt_handle))
+        self.prompt_count = char_count(self.prompt)
+        prompt_box = captioned(heading(indented(labelled("Prompt", "prompt")), self.prompt_count,
+                                       self.enhance_button, self.layout_button), self.prompt, self.prompt_handle)
+        prompt_box.insertWidget(2, self.layout_summary)
+        layout.addLayout(prompt_box)
         layout.addSpacing(2)
         layout.addLayout(captioned(heading(indented(labelled("Negative prompt", "negative_prompt")),
                                            char_count(self.negative)), self.negative, self.negative_handle))
@@ -213,6 +227,17 @@ class ControlsPanel(QWidget):
         self.enhance_button.setToolTip("Let the model rewrite your prompt with more detail; you pick which version to use")
         self.enhance_button.clicked.connect(
             lambda: self.prompt.toPlainText().strip() and self.enhanceRequested.emit(self.prompt.toPlainText()))
+        self.use_layout = False              # whether the draft is the prompt, or only kept for later
+        self.draft = None                    # a layout draft (layout.py); when set, it is the prompt
+        self.layout_button = QPushButton("Layout…")
+        self.layout_button.setProperty("card", True)
+        self.layout_button.setToolTip("Place text and things in boxes on the picture")
+        self.layout_button.clicked.connect(self.layoutRequested)
+        self.layout_summary = ClickLabel(objectName="textBox")
+        self.layout_summary.setWordWrap(True)
+        self.layout_summary.setToolTip("Click to edit the layout")
+        self.layout_summary.clicked.connect(self.layoutRequested)
+        self.layout_summary.setVisible(False)
         self.delete_button = QPushButton(icon("trash", RED), "Delete all history…",
                                          objectName="destructive")
         self.delete_button.clicked.connect(self.deleteHistoryRequested)
@@ -639,9 +664,44 @@ class ControlsPanel(QWidget):
             box.setSingleStep(step)
         self.size_step.setCurrentText(str(step))
 
+    def set_layout(self, draft, use=True):
+        """Keep a layout (None: none) and use it as the prompt, or keep it aside for Layout… to bring back.
+        Its boxes follow the picture's size."""
+        self.draft = draft
+        self.use_layout = on = use and draft is not None
+        for w in (self.prompt, self.prompt_handle, self.prompt_count, self.enhance_button):
+            w.setVisible(not on)
+        self.layout_summary.setVisible(on)
+        self.layout_button.setText("Edit layout…" if on else "Layout…")
+        if on:
+            self.layout_summary.setText(L.describe(draft))
+
+    def layout_draft(self):
+        """The current layout at the picture's size, or a new one: from a layout pasted as the prompt, or
+        starting from the typed prompt as the description of the whole picture."""
+        w, h = self.width_box.value(), self.height_box.value()
+        if self.draft is not None:
+            return L.scaled(self.draft, w, h)
+        text = self.prompt.toPlainText().strip()
+        draft = L.from_prompt(text, w, h) if text.startswith("{") else None
+        if draft is not None:
+            return L.scaled(draft, w, h)
+        draft = L.new(w, h)
+        draft["summary"]["caption"] = text
+        return draft
+
+    def _layout_params(self):
+        if not self.use_layout:
+            return dict(prompt=self.prompt.toPlainText(), layout="")
+        try:
+            prompt = L.compile_prompt(self.draft, self.width_box.value(), self.height_box.value())
+        except ValueError:
+            prompt = ""                      # validate() says what is missing
+        return dict(prompt=prompt, layout=L.dumps(self.draft))
+
     def params(self):
         return P.Params(
-            prompt=self.prompt.toPlainText(), negative_prompt=self.negative.toPlainText(),
+            **self._layout_params(), negative_prompt=self.negative.toPlainText(),
             width=self.width_box.value(), height=self.height_box.value(), steps=self.steps.value(),
             cfg=self.cfg.value(), seed=int(self.seed.text() or 0), num_images=self.count.value(),
             model=self.model.currentText().strip(), sampler=self.sampler.currentText(), shift=self.shift.value(),
@@ -653,7 +713,13 @@ class ControlsPanel(QWidget):
         )
 
     def set_params(self, p):
-        self.prompt.setPlainText(p.prompt)
+        if p.layout:
+            draft = L.loads(p.layout)
+            self.prompt.setPlainText(draft["summary"].get("caption", ""))
+            self.set_layout(draft)
+        else:
+            self.prompt.setPlainText(p.prompt)
+            self.set_layout(self.draft, use=False)       # a layout kept aside stays for Layout… to bring back
         self.negative.setPlainText(p.negative_prompt)
         self._set_size(p.width, p.height)
         self.steps.setValue(p.steps)
