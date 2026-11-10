@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 
+from .. import layout as L
 from .. import params as P
 from .. import store
 from ..backend import local_snapshot
@@ -155,6 +156,7 @@ class MainWindow(QMainWindow):
         self.controls.describeRequested.connect(self.describe_image)
         self.controls.enhanceRequested.connect(self.enhance_prompt)
         self.controls.maskRequested.connect(self.edit_mask)
+        self.controls.layoutRequested.connect(self.edit_layout)
         self.discarded = set()
         self.controls.outputDirEdited.connect(self.change_output_dir)
         self._hide_status = QTimer(self, singleShot=True, timeout=lambda: self.notify(None))
@@ -391,6 +393,34 @@ class MainWindow(QMainWindow):
 
     # inpainting / outpainting
 
+    def edit_layout(self, backdrop=None):
+        from .layout_editor import LayoutEditor
+
+        editor = LayoutEditor(self.controls.layout_draft(), backdrop, self, self._confirm_delete_layout)
+        editor.exec()
+        if editor.action == "delete":
+            self.controls.set_layout(None)
+            self.notify("Layout deleted. Pictures made from it keep theirs: Edit layout on one brings it back.", 8000)
+            return
+        if editor.action == "remove" and not self.controls.prompt.toPlainText().strip():
+            self.controls.prompt.setPlainText(editor.draft["summary"].get("caption", ""))
+        self.controls.set_layout(editor.draft, use=editor.action == "use")
+
+    def _confirm_delete_layout(self, draft, parent):
+        """Delete at once if a picture in the history keeps this exact layout; otherwise it would be lost, so ask."""
+        mine = L.signature(draft)
+        for card in self.history.by_path.values():
+            p = card.entry.params
+            if p.layout and L.signature(L.scaled(L.loads(p.layout), draft["width"], draft["height"])) == mine:
+                return True
+        return confirm_delete(parent, "Delete layout", "Delete this layout?",
+                              "No picture has been made from it as it is now, so it can't be brought back.")
+
+    def _edit_layout_of(self, entry):
+        """Reuse a layout picture's settings and open its layout over it."""
+        self._reuse(entry)
+        self.edit_layout(str(entry.image))
+
     def edit_mask(self):
         from .mask_editor import MaskEditor
 
@@ -429,6 +459,12 @@ class MainWindow(QMainWindow):
                 self.controls.set_params(P.from_json(json.dumps(saved)))
             except (ValueError, TypeError, json.JSONDecodeError):
                 pass
+        kept = self.settings.get("kept_layout", "")
+        if kept and self.controls.draft is None:
+            try:
+                self.controls.set_layout(L.loads(kept), use=False)
+            except (ValueError, TypeError):
+                pass
         self.controls.set_advanced_open(bool(self.settings.get("advanced_open", False)))
         self.controls.set_size_step(int(self.settings.get("size_step", 128)))
         self.controls.think_first.setChecked(False)     # slow: off at every launch, on only when asked for
@@ -453,6 +489,8 @@ class MainWindow(QMainWindow):
                 return
         self.settings.set("geometry", bytes(self.saveGeometry().toBase64()).decode())
         self.settings.set("params", json.loads(P.to_json(self.controls.params())))
+        kept = self.controls.draft if self.controls.draft is not None and not self.controls.use_layout else None
+        self.settings.set("kept_layout", L.dumps(kept))
         self.settings.set("advanced_open", self.controls.advanced_toggle.isChecked())
         self.settings.set("size_step", self.controls.width_box.singleStep())
         self.settings.set("prompt_height", self.controls.prompt.height())
@@ -603,6 +641,7 @@ class MainWindow(QMainWindow):
         card.copyPrompt.connect(lambda e: clipboard.setText(e.params.prompt))
         card.reveal.connect(lambda e: self._reveal(e.image))
         card.open_.connect(lambda e: open_in_preview(e.image))
+        card.edit_layout.connect(self._edit_layout_of)
         card.trash.connect(self._trash)
 
     def _vary(self, entry):

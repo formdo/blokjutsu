@@ -1,7 +1,7 @@
 ---
 title: Working from a picture
 parent: Making images
-nav_order: 3
+nav_order: 4
 ---
 
 # Working from a picture

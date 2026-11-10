@@ -1,7 +1,7 @@
 ---
 title: Your history
 parent: Making images
-nav_order: 5
+nav_order: 6
 ---
 
 # Your history
@@ -15,6 +15,7 @@ prompt. The text can be selected and copied.
 | Use as input | [starts a new picture](from-a-picture.md) from this one |
 | Describe image | writes descriptions of it |
 | Reuse settings | puts its prompt and all settings back in the controls |
+| Edit layout | for a picture made from a [layout](layouts.md): its settings back, and its layout open over it |
 | Copy seed, Copy prompt | to the clipboard |
 | Open in Preview | opens it in the Mac's Preview app |
 | Show in Finder | its folder |

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import img2img as I
+from .. import layout as L
 from .. import params as P
 from .image_cache import ImageCache
 from .icons import BLUE, RED, icon
@@ -44,8 +45,9 @@ def _html(text):
 
 
 def prompt_text(p):
-    """Full prompt as rich text; the negative prompt, if any, on the next line after an italic label."""
-    text = _html(p.prompt)
+    """Full prompt as rich text (a layout as its description and box count); the negative prompt, if any, on the
+    next line after an italic label."""
+    text = f"<i>Layout:</i> {_html(L.describe(L.loads(p.layout)))}" if p.layout else _html(p.prompt)
     if p.negative_prompt.strip():
         text += f"<br><i>Negative:</i> {_html(p.negative_prompt)}"
     return text
@@ -183,6 +185,7 @@ CARD_TIPS = {
     "Use as input": "Start a new picture from this one (Start from image)",
     "Describe image": "Write a description of this picture that you can use as a prompt",
     "Reuse settings": "Put this picture's prompt and settings back in the controls",
+    "Edit layout": "Put this picture's settings back and open its layout, with the picture behind the boxes",
     "Copy seed": "Copy the seed number",
     "Copy prompt": "Copy the prompt text",
     "Open in Preview": "Open the picture in the Mac's Preview app",
@@ -200,6 +203,7 @@ class EntryCard(Card):
     copyPrompt = Signal(object)
     reveal = Signal(object)
     open_ = Signal(object)
+    edit_layout = Signal(object)
     trash = Signal(object)
 
     def __init__(self, entry, cache, parent=None):
@@ -214,7 +218,9 @@ class EntryCard(Card):
         self.caption(prompt_text(entry.params), muted=True, rich=True)
         actions = [("Generate similar image", self.vary, None), ("Use as input", self.use_input, None),
                    ("Describe image", self.describe, None),
-                   ("Reuse settings", self.reuse, None), ("Copy seed", self.copySeed, "copy"),
+                   ("Reuse settings", self.reuse, None),
+                   *([("Edit layout", self.edit_layout, None)] if entry.params.layout else []),
+                   ("Copy seed", self.copySeed, "copy"),
                    ("Copy prompt", self.copyPrompt, "copy"), ("Open in Preview", self.open_, None),
                    ("Show in Finder", self.reveal, "folder"),
                    ("Delete", self.trash, "trash")]

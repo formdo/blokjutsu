@@ -26,6 +26,7 @@ Every picture is saved automatically, with all of its settings, in the **Output*
 - Press **Generate** again: you get a different picture, because the **Seed** is new each time.
 - Make the prompt longer and more specific. MOSS-Image rewards detail; see [Writing prompts](prompts.md).
 - Click **Enhance prompt** to have the model write a more detailed version of your prompt.
+- Click **Layout…** to say exactly where things go, with [boxes on the picture](layouts.md).
 - On a picture you like, click **Generate similar image** for close [variations](variations.md).
 - Click **Use as input** to [start a new picture from it](from-a-picture.md).
 - Click the bold name of any control, such as **Seed** or **Change**, for a one-line explanation.

@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.0.0rc4 (2026-11-10)
 
+- **Layout editor** (Layout… beside the prompt): draw boxes for text and things on a canvas the size of the
+  picture, give each a description and, for text, its words; the layout becomes the prompt, in MOSS-Image's
+  compact form, and its boxes follow the picture's size. **Edit layout** on a picture's card opens its layout
+  with the picture behind the boxes. **Remove layout** sets it aside, kept for later; **Delete layout** throws it
+  away, asking first only if no picture keeps it
+- User's Guide: a Layouts page, with an example on the home page
 - **Open in Preview** is a button on each picture, in place of double-clicking it
 - User's Guide: a shorter home page that leads straight into getting started; the app's name beside the icon
   in the header; the search under the menu, with no bar above the page; Examples under Making images; Install and Uninstall and

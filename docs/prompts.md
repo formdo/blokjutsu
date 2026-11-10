@@ -48,35 +48,8 @@ Put quality words first and subject words last.
 
 ## Layouts
 
-For precise placement you can give the prompt as a JSON layout: an overall caption plus boxes, each with a
-description and, for text, the exact words. This example is for a 1024 × 1024 picture:
-
-```json
-{
-  "summary": {"meta": ["poster"], "canvas": "single",
-              "caption": "A minimalist travel poster, cream background, a blue mountain, the title EXPLORE."},
-  "items": [
-    {"label": "text", "caption": "Large dark-blue capitals, centered at the top.", "text": "EXPLORE",
-     "bbox": [-416, -384, -288, 384]},
-    {"label": "object", "caption": "A flat blue mountain illustration.", "bbox": [-192, -288, 384, 288]}
-  ],
-  "bbox_coord_space": "abs_centralized",
-  "bbox_format": "yxyx"
-}
-```
-
-Each `bbox` is a box given by four numbers, `[top, left, bottom, right]`, in pixels measured from the center of
-the picture: left and up are negative, right and down are positive. On a 1024 × 1024 picture both directions run
-from −512 to 512, so `[-416, -384, -288, 384]` is a wide strip near the top. To convert from the usual
-top-left corner coordinates of an image editor, subtract half the width from *x* and half the height from *y*.
-
-`"bbox_coord_space": "abs_centralized"` (pixels from the center) and `"bbox_format": "yxyx"` (top, left, bottom,
-right) say how to read the boxes. They are the only values MOSS-Image currently documents, so keep them as they
-are. You can also mix a layout with ordinary sentences in the same prompt.
-
-Blokjutsu checks the JSON before generating and warns if the boxes don't fit the picture size. Layouts are
-experimental in MOSS-Image; the [MOSS-Image User Guide](https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE.md#layout-prompts-experimental)
-has the details.
+To say where things go, use a [layout](layouts.md): boxes drawn on the picture, each with a description and, for
+text, the exact words.
 
 ## Let the model help
 

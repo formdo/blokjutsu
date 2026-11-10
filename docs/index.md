@@ -45,6 +45,20 @@ Keep the pose and change everything else, or paint over one part and change only
 [Working from a picture](from-a-picture.md) [More examples](examples.md#starting-from-a-picture)
 {: .more}
 
+## Put things exactly where you want them
+
+<div class="pair">
+  <figure><img src="assets/examples/layouts/cafe-boxes.webp" width="896" height="1344" loading="lazy"
+    alt="The layout's boxes over the picture: the chalkboard menu and its lines, the waiter, his tray, a bistro table and two cats"><figcaption>The layout: a box for each thing, and the words for the menu</figcaption></figure>
+  <figure><img src="assets/examples/layouts/cafe.webp" width="896" height="1344" loading="lazy"
+    alt="A Paris sidewalk café: a waiter with a tray of sushi beside a chalkboard menu, two cats watching from the cobblestones"><figcaption>The picture: everything where it was drawn, the menu word for word</figcaption></figure>
+</div>
+
+Draw boxes, say what goes in each, and MOSS-Image puts it there.
+
+[Layouts](layouts.md)
+{: .more}
+
 ## Describe a picture
 
 ![The Describe image window: a 1942 photograph of two women and a child cycling in a park, with short, medium, and long descriptions beside it](assets/screenshots/describe.webp)
