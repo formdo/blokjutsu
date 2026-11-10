@@ -197,8 +197,8 @@ Upload the .dmg to the GitHub release for the tag.
    ```sh
    git checkout main
    git pull
-   git tag v1.0.0rc3
-   git push origin v1.0.0rc3
+   git tag v1.0.0rc4
+   git push origin v1.0.0rc4
    ```
 
 5. Attach `dist/Blokjutsu-<version>.dmg` to the GitHub release (Edit, then drop it on "Attach binaries").
