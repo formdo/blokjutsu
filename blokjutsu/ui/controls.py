@@ -3,24 +3,28 @@ from __future__ import annotations
 
 import math
 import os
+import secrets
 from dataclasses import replace
 
 from PySide6.QtCore import QRegularExpression, Qt, Signal
-from PySide6.QtGui import QPalette, QRegularExpressionValidator
+from PySide6.QtGui import QPalette, QRegularExpressionValidator, QTextCursor
 from PySide6.QtWidgets import (
-    QComboBox, QFrame, QLabel, QSlider, QDoubleSpinBox, QFileDialog, QFormLayout, QHBoxLayout, QLineEdit,
+    QCheckBox, QComboBox, QFrame, QLabel, QSlider, QDoubleSpinBox, QFileDialog, QFormLayout, QHBoxLayout, QLineEdit,
     QPlainTextEdit, QPushButton, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
 from .. import layout as L
+from .. import lora as R
+from .. import models as M
 from .. import params as P
 from .. import img2img as I
 from .. import sizes as S
 from ..samplers import SAMPLERS
-from .icons import RED, icon
+from .icons import icon
 from .theme import CONTROL_HEIGHT, MARGIN, enlarge, medium
 from .image_input import ImageWell
 from .resize_handle import ResizeHandle
+from .loras import LoraRow, TriggerHighlighter
 from .toggle import ToggleSwitch
 from .widgets import labelled
 
@@ -35,16 +39,52 @@ def indented(label, pixels=3):
     return label
 
 
-def toggle_row(text, help_key, switch):
-    """Section header: medium-weight title (clickable help if help_key) followed by its on/off switch."""
+def toggle_row(text, help_key, switch, summary=None):
+    """Section header: medium-weight title (clickable help if help_key), its on/off switch, and a muted summary of
+    what the closed section holds."""
     row = QHBoxLayout()
     title = medium(labelled(text, help_key) if help_key else QLabel(text))
     title.setObjectName("sectionTitle")
     row.addWidget(title)
     row.addSpacing(10)
     row.addWidget(switch)
-    row.addStretch(1)
+    if summary is not None:
+        summary.setForegroundRole(QPalette.PlaceholderText)
+        summary.setMinimumWidth(1)
+        row.addSpacing(10)
+        row.addWidget(summary, 1)
+    else:
+        row.addStretch(1)
     return row
+
+
+class Summary(QLabel):
+    """One line, elided at the right, with the whole text as its tooltip."""
+
+    def setText(self, text):
+        self.full = text
+        self.setToolTip(text)
+        self._elide()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._elide()
+
+    def _elide(self):
+        super().setText(self.fontMetrics().elidedText(getattr(self, "full", ""), Qt.ElideRight, self.width()))
+
+
+ADVANCED_LABELS = {"sampler": "Sampler", "sde_eta": "SDE noise", "shift": "Shift", "uncond_skip_layers": "Uncond skip",
+                   "slg_layers": "SLG layers", "slg_scale": "SLG scale", "slg_start": "Skip interval",
+                   "slg_stop": "Skip interval", "max_sequence_length": "Max tokens"}
+
+
+def changed_advanced(p):
+    """Names of the advanced settings in p that differ from the defaults, each named once."""
+    d = P.Params()
+    names = [ADVANCED_LABELS[k] for k in ADVANCED_LABELS if getattr(p, k) != getattr(d, k)
+             and (k != "sde_eta" or p.sampler == "Euler SDE")]
+    return list(dict.fromkeys(names))
 
 
 def hairline():
@@ -160,18 +200,21 @@ def form():
 
 class ControlsPanel(QWidget):
     generateRequested = Signal()
-    deleteHistoryRequested = Signal()
     outputDirEdited = Signal(str)
     describeRequested = Signal(str)          # image path
     enhanceRequested = Signal(str)           # prompt text
     maskRequested = Signal()
     layoutRequested = Signal()
+    lorasRequested = Signal()
+    modelsRequested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._build_prompts()
         self._build_main()
         self._build_advanced()
+        self._build_model()
+        self._build_loras()
         self.generate_button = QPushButton("Generate", objectName="primary")
         self.generate_button.setMinimumHeight(40)
         self.generate_button.setToolTip("⌘↩")
@@ -184,6 +227,7 @@ class ControlsPanel(QWidget):
         prompt_box = captioned(heading(indented(labelled("Prompt", "prompt")), self.prompt_count,
                                        self.enhance_button, self.layout_button), self.prompt, self.prompt_handle)
         prompt_box.insertWidget(2, self.layout_summary)
+        prompt_box.insertWidget(4, self.layout_note)
         layout.addLayout(prompt_box)
         layout.addSpacing(2)
         layout.addLayout(captioned(heading(indented(labelled("Negative prompt", "negative_prompt")),
@@ -203,11 +247,19 @@ class ControlsPanel(QWidget):
         layout.addSpacing(14)
         layout.addWidget(hairline())
         layout.addSpacing(10)
+        layout.addLayout(self.model_row)
+        layout.addWidget(self.model_block)
+        layout.addSpacing(14)
+        layout.addWidget(hairline())
+        layout.addSpacing(10)
+        layout.addLayout(self.loras_row)
+        layout.addWidget(self.loras_block)
+        layout.addSpacing(14)
+        layout.addWidget(hairline())
+        layout.addSpacing(10)
         layout.addLayout(self.advanced_row)
         layout.addWidget(self.advanced)
         layout.addStretch(1)
-        layout.addSpacing(16)
-        layout.addWidget(self.delete_button)
         self._align_section_switches()
         self.set_params(P.Params())
 
@@ -222,7 +274,7 @@ class ControlsPanel(QWidget):
         self.negative_handle = ResizeHandle(self.negative)
         self.negative_handle.set_height(NEGATIVE_HEIGHT)
         enlarge(self.negative)
-        self.enhance_button = QPushButton("Enhance prompt")
+        self.enhance_button = QPushButton("Enhance prompt…")
         self.enhance_button.setProperty("card", True)
         self.enhance_button.setToolTip("Let the model rewrite your prompt with more detail; you pick which version to use")
         self.enhance_button.clicked.connect(
@@ -238,9 +290,12 @@ class ControlsPanel(QWidget):
         self.layout_summary.setToolTip("Click to edit the layout")
         self.layout_summary.clicked.connect(self.layoutRequested)
         self.layout_summary.setVisible(False)
-        self.delete_button = QPushButton(icon("trash", RED), "Delete all history…",
-                                         objectName="destructive")
-        self.delete_button.clicked.connect(self.deleteHistoryRequested)
+        self.layout_note = ClickLabel()
+        self.layout_note.setForegroundRole(QPalette.PlaceholderText)
+        self.layout_note.setWordWrap(True)
+        self.layout_note.setToolTip("Click to open the layout")
+        self.layout_note.clicked.connect(self.layoutRequested)
+        self.layout_note.setVisible(False)
 
     def _build_main(self):
         self._scale_base = (0, 0)
@@ -278,11 +333,11 @@ class ControlsPanel(QWidget):
         self.count = spin(1, 64)
         self.seed = QLineEdit()
         self.seed.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d{0,10}")))
-        self.seed.setPlaceholderText("0")
-        self.seed_hint = QLabel("(new random seed)", self)
-        self.seed_hint.setForegroundRole(QPalette.PlaceholderText)
-        self.seed.textChanged.connect(lambda text: self.seed_hint.setVisible(int(text or 0) == 0))
+        self.seed_random = QCheckBox("Random")
+        self.seed_random.setToolTip("A new seed for each picture; untick to keep one and get the same picture again")
+        self.seed_random.toggled.connect(self._seed_random_toggled)
         self.seed.textEdited.connect(lambda _: self._clear_variation_base())
+        self.seed.editingFinished.connect(lambda: int(self.seed.text() or 0) or self.set_seed(0))
         self._build_variation()
         self._build_input()
         self.steps = spin(1, 500)
@@ -295,9 +350,9 @@ class ControlsPanel(QWidget):
         choose = QToolButton(icon=icon("folder"), toolTip="Choose folder…",
                              objectName="folderButton")
         choose.clicked.connect(self._choose_dir)
-        out_row = QHBoxLayout()
-        out_row.addWidget(self.output_dir, 1)
-        out_row.addWidget(choose)
+        self.out_row = QHBoxLayout()
+        self.out_row.addWidget(self.output_dir, 1)
+        self.out_row.addWidget(choose)
 
         f = self.main_form = form()
         f.addRow(form_label("Size", "size"), size_field)
@@ -305,13 +360,32 @@ class ControlsPanel(QWidget):
         self.count.setFixedWidth(120)
         self.seed.setFixedWidth(120)
         seed_row = QHBoxLayout()
+        seed_row.setSpacing(10)
+        seed_row.addWidget(self.seed_random)
         seed_row.addWidget(self.seed)
-        seed_row.addWidget(self.seed_hint, 1)
+        seed_row.addStretch(1)
         f.addRow(form_label("Images", "num_images"), self.count)
         f.addRow(form_label("Seed", "seed"), seed_row)
         f.addRow(form_label("Steps", "steps"), self.steps)
         f.addRow(form_label("Adherence", "cfg"), self.cfg)
-        f.addRow(form_label("Output", "output_dir"), out_row)
+
+    def set_seed(self, seed):
+        """0 means Random: the box is hidden, keeping the last number for unticking."""
+        if seed:
+            self.seed.setText(str(seed))
+        self.seed_random.blockSignals(True)
+        self.seed_random.setChecked(not seed)
+        self.seed_random.blockSignals(False)
+        self.seed.setVisible(bool(seed))
+
+    def _seed_random_toggled(self, random_):
+        self.seed.setVisible(not random_)
+        if not random_:
+            if not int(self.seed.text() or 0):
+                self.seed.setText(str(secrets.randbelow(P.SEED_MAX) + 1))
+            self.seed.setFocus()
+            self.seed.selectAll()
+        self._clear_variation_base()
 
     def _build_variation(self):
         self.variation_slider = QSlider(Qt.Horizontal)
@@ -339,7 +413,8 @@ class ControlsPanel(QWidget):
 
         self.variations_toggle = ToggleSwitch()
         self.variations_toggle.toggled.connect(self.set_variations_open)
-        self.variations_row = toggle_row("Variations", "variations", self.variations_toggle)
+        self.variations_summary = Summary()
+        self.variations_row = toggle_row("Variations", "variations", self.variations_toggle, self.variations_summary)
         vf = form()
         vf.setContentsMargins(0, 6, 0, 0)
         vf.addRow(form_label("Strength", "variation"), self.variation_row)
@@ -365,7 +440,7 @@ class ControlsPanel(QWidget):
         self.match_size = QPushButton("Match image size")
         self.match_size.setToolTip("Make the new picture the same shape and size as this one")
         self.match_size.clicked.connect(self._match_input_size)
-        self.describe_input = QPushButton("Describe image")
+        self.describe_input = QPushButton("Describe image…")
         self.describe_input.setToolTip("Write a description of this picture that you can use as a prompt")
         self.describe_input.clicked.connect(
             lambda: self.input_well.path and self.describeRequested.emit(self.input_well.path))
@@ -392,7 +467,8 @@ class ControlsPanel(QWidget):
 
         self.input_toggle = ToggleSwitch()
         self.input_toggle.toggled.connect(self.set_input_open)
-        self.input_row = toggle_row("Start from image", "input_image", self.input_toggle)
+        self.input_summary = Summary()
+        self.input_row = toggle_row("Start from image", "input_image", self.input_toggle, self.input_summary)
         f = form()
         f.setContentsMargins(0, 6, 0, 0)
         f.addRow(self.input_well)
@@ -421,6 +497,12 @@ class ControlsPanel(QWidget):
         """Open: generate from the input image; closed: ordinary text-to-image."""
         self.input_toggle.setChecked(open_)
         self.input_block.setVisible(open_)
+        self._summarize_input()
+
+    def _summarize_input(self):
+        path = self.input_well.path
+        self.input_summary.setText("" if self.input_toggle.isChecked() else
+                                   f"Off · {os.path.basename(path)} kept" if path else "Off")
 
     def set_input_image(self, path):
         self.input_well.set_path(path)
@@ -509,6 +591,7 @@ class ControlsPanel(QWidget):
         """Open shows the variation controls and uses them; closed means no variations."""
         self.variations_toggle.setChecked(open_)
         self.variations.setVisible(open_)
+        self.variations_summary.setText("" if open_ else "Off")
 
     def _update_variation_hint(self):
         text = "(new variations each time)" if int(self.variation_seed.text() or 0) == 0 else ""
@@ -520,15 +603,136 @@ class ControlsPanel(QWidget):
         self._variation_base = ""
         self._update_variation_hint()
 
+    # LoRAs
+
+    def _build_loras(self):
+        self.lora_rows = []
+        self.loras_toggle = ToggleSwitch()
+        self.loras_toggle.toggled.connect(self.set_loras_open)
+        self.loras_summary = Summary()
+        self.loras_row = toggle_row("LoRAs", "loras", self.loras_toggle, self.loras_summary)
+        self.lora_list = QVBoxLayout()
+        self.lora_list.setContentsMargins(0, 0, 0, 0)
+        self.lora_list.setSpacing(6)
+        add = QPushButton("Choose LoRAs…")
+        add.setToolTip("Tick the LoRAs to use; add new ones to your library from Hugging Face or a file")
+        add.clicked.connect(self.lorasRequested)
+        block = QVBoxLayout()
+        block.setContentsMargins(0, 6, 0, 0)
+        block.addLayout(self.lora_list)
+        block.addWidget(add)
+        self.loras_block = QWidget()
+        self.loras_block.setLayout(block)
+        self.loras_block.setVisible(False)
+        self.highlighter = TriggerHighlighter(self.prompt.document())
+        self.prompt.textChanged.connect(self._refresh_triggers)
+
+    def set_loras_open(self, open_):
+        """Open uses the listed LoRAs; closed uses none (the list is kept)."""
+        self.loras_toggle.setChecked(open_)
+        self.loras_block.setVisible(open_)
+        names = ", ".join(row.item.get("name") or "unnamed" for row in self.lora_rows)
+        self.loras_summary.setText("" if open_ else f"Off · {names} kept" if names else "Off")
+        self._refresh_triggers()
+
+    def lora_ids(self):
+        return [row.item.get("id") for row in self.lora_rows]
+
+    def set_lora_entries(self, items):
+        for row in list(self.lora_rows):
+            self._drop_row(row)
+        for item in items:
+            self._add_row(item)
+        self.set_loras_open(bool(items))
+
+    def refresh_loras(self):
+        """Pick up name and trigger edits from the library, and LoRAs that went missing."""
+        items = []
+        for row in self.lora_rows:
+            info = R.locate(row.item)
+            items.append({**row.item, "name": info.get("name", ""), "trigger": info.get("trigger", "")}
+                         if info else row.item)
+        open_ = self.loras_toggle.isChecked()
+        self.set_lora_entries(items)
+        self.set_loras_open(open_ and bool(items))
+
+    def add_lora(self, info):
+        item = R.entry(info)
+        self._add_row(item)
+        if item["trigger"] and item["trigger"] not in self._prompt_text():
+            self._insert_trigger(item["trigger"])
+        self.set_loras_open(True)
+
+    def remove_lora(self, lora_id):
+        for row in list(self.lora_rows):
+            if row.item.get("id") == lora_id:
+                self._remove_row(row)
+
+    def _add_row(self, item):
+        row = LoraRow(item)
+        row.changed.connect(self._refresh_triggers)
+        row.removed.connect(self._remove_row)
+        row.add_trigger.connect(self._insert_trigger)
+        self.lora_list.addWidget(row)
+        self.lora_rows.append(row)
+
+    def _drop_row(self, row):
+        self.lora_rows.remove(row)
+        self.lora_list.removeWidget(row)
+        row.deleteLater()
+
+    def _remove_row(self, row):
+        trigger = row.item.get("trigger", "")
+        self._drop_row(row)
+        if trigger and all(r.item.get("trigger") != trigger for r in self.lora_rows):
+            self._take_out_trigger(trigger)
+        if not self.lora_rows:
+            self.set_loras_open(False)
+        self._refresh_triggers()
+
+    def _prompt_text(self):
+        return self.draft["summary"].get("caption", "") if self.use_layout else self.prompt.toPlainText()
+
+    def _set_prompt_text(self, text):
+        """Replace the prompt (or a layout's description) as one undoable edit."""
+        if self.use_layout:
+            self.draft["summary"]["caption"] = text
+            self.set_layout(self.draft)
+            return
+        cursor = QTextCursor(self.prompt.document())
+        cursor.select(QTextCursor.Document)
+        cursor.insertText(text)
+
+    def _insert_trigger(self, trigger):
+        text = self._prompt_text()
+        self._set_prompt_text(f"{trigger}, {text}" if text.strip() else trigger)
+
+    def _take_out_trigger(self, trigger):
+        text = self._prompt_text()
+        for pattern in (f"{trigger}, ", f", {trigger}", trigger):
+            if pattern in text:
+                self._set_prompt_text(text.replace(pattern, "", 1).strip())
+                return
+
+    def _refresh_triggers(self):
+        on = self.loras_toggle.isChecked()
+        self.highlighter.set_triggers([r.item.get("trigger", "") for r in self.lora_rows] if on else [])
+        text = self._prompt_text()
+        for row in self.lora_rows:
+            row.show_trigger_missing(text)
+
+    def _loras_params(self):
+        if not self.loras_toggle.isChecked():
+            return ""
+        return R.dumps([row.item for row in self.lora_rows])
+
     def _build_advanced(self):
         self.advanced_toggle = ToggleSwitch()
         self.advanced_toggle.toggled.connect(self.set_advanced_open)
-        self.advanced_row = toggle_row("Advanced options", None, self.advanced_toggle)
+        self.advanced_summary = Summary()
+        self.advanced_row = toggle_row("Advanced options", None, self.advanced_toggle, self.advanced_summary)
         self.advanced = QWidget()
 
-        self.model = QComboBox(editable=True)
-        self.model.addItems(P.MODELS.values())
-        self.model.setToolTip("Hugging Face repo id or local model folder")
         self.sampler = QComboBox()
         self.sampler.addItems(SAMPLERS)
         self.shift = dspin(0.01, 100, 0.5)
@@ -553,7 +757,7 @@ class ControlsPanel(QWidget):
 
         f = form()
         f.setContentsMargins(0, 0, 0, 0)
-        f.addRow(form_label("Model", "model"), self.model)
+        f.addRow(form_label("Output", "output_dir"), self.out_row)
         f.addRow(form_label("Sampler", "sampler"), self.sampler)
         f.addRow(form_label("SDE noise η", "sde_eta"), self.sde_eta)
         f.addRow(form_label("Shift", "shift"), self.shift)
@@ -600,6 +804,15 @@ class ControlsPanel(QWidget):
     def set_advanced_open(self, open_):
         self.advanced_toggle.setChecked(open_)
         self.advanced.setVisible(open_)
+        self._summarize_advanced()
+
+    def _summarize_advanced(self):
+        """Closed, the advanced settings still apply, so say whether any differ from the defaults."""
+        if self.advanced_toggle.isChecked() or not hasattr(self, "model_block"):
+            self.advanced_summary.setText("")
+            return
+        names = changed_advanced(self.params())
+        self.advanced_summary.setText(f"Changed: {', '.join(names)}" if names else "Defaults")
 
     def _choose_dir(self):
         path = QFileDialog.getExistingDirectory(self, "Output folder", os.path.expanduser(self.output_dir.text()))
@@ -646,7 +859,10 @@ class ControlsPanel(QWidget):
         key = f"{w}x{h}"
         if self.preset.findData(key) < 0:
             areas = [int(a) * int(b) for a, b in (self.preset.itemData(i).split("x") for i in range(self.preset.count()))]
-            self.preset.insertItem(sum(area < w * h for area in areas), S.label(w, h), key)
+            text = S.label(w, h)
+            if self.preset.findText(text) >= 0:
+                text = f"{text} ({w} × {h})"
+            self.preset.insertItem(sum(area < w * h for area in areas), text, key)
         self.preset.setCurrentIndex(self.preset.findData(key))
 
     def _choose_aspect(self, index):
@@ -666,7 +882,9 @@ class ControlsPanel(QWidget):
 
     def set_layout(self, draft, use=True):
         """Keep a layout (None: none) and use it as the prompt, or keep it aside for Layout… to bring back.
-        Its boxes follow the picture's size."""
+        Its boxes follow the picture's size. An empty layout (no boxes, no description) counts as none."""
+        if draft is not None and L.is_empty(draft):
+            draft = None
         self.draft = draft
         self.use_layout = on = use and draft is not None
         for w in (self.prompt, self.prompt_handle, self.prompt_count, self.enhance_button):
@@ -674,7 +892,13 @@ class ControlsPanel(QWidget):
         self.layout_summary.setVisible(on)
         self.layout_button.setText("Edit layout…" if on else "Layout…")
         if on:
-            self.layout_summary.setText(L.describe(draft))
+            self.layout_summary.setText(f"Layout in use: {L.describe(draft)}")
+        kept = draft is not None and not on
+        self.layout_note.setVisible(kept)
+        if kept:
+            self.layout_note.setText(f"Layout kept, not in use: {L.describe(draft)}. Layout… brings it back.")
+        if hasattr(self, "lora_rows"):
+            self._refresh_triggers()
 
     def layout_draft(self):
         """The current layout at the picture's size, or a new one: from a layout pasted as the prompt, or
@@ -703,13 +927,13 @@ class ControlsPanel(QWidget):
         return P.Params(
             **self._layout_params(), negative_prompt=self.negative.toPlainText(),
             width=self.width_box.value(), height=self.height_box.value(), steps=self.steps.value(),
-            cfg=self.cfg.value(), seed=int(self.seed.text() or 0), num_images=self.count.value(),
-            model=self.model.currentText().strip(), sampler=self.sampler.currentText(), shift=self.shift.value(),
+            cfg=self.cfg.value(), seed=0 if self.seed_random.isChecked() else int(self.seed.text() or 0), num_images=self.count.value(),
+            model=self.current_model(), sampler=self.sampler.currentText(), shift=self.shift.value(),
             uncond_skip_layers=self.uncond_layers.text(), slg_layers=self.slg_layers.text(),
             slg_scale=self.slg_scale.value(), slg_start=self.slg_start.value(), slg_stop=self.slg_stop.value(),
             max_sequence_length=self.max_seq.value(), noise_device=self._noise_device,
             compile_transformer=True, sde_eta=self.sde_eta.value(),
-            **self._variation_params(), **self._input_params(),
+            **self._variation_params(), **self._input_params(), loras=self._loras_params(),
         )
 
     def set_params(self, p):
@@ -724,9 +948,9 @@ class ControlsPanel(QWidget):
         self._set_size(p.width, p.height)
         self.steps.setValue(p.steps)
         self.cfg.setValue(p.cfg)
-        self.seed.setText(str(p.seed))
+        self.set_seed(p.seed)
         self.count.setValue(p.num_images)
-        self.model.setCurrentText(p.model)
+        self.select_model(p.model)
         if p.sampler in SAMPLERS:
             self.sampler.setCurrentText(p.sampler)
         self.shift.setValue(p.shift)
@@ -752,12 +976,88 @@ class ControlsPanel(QWidget):
             self.loaded_sigma = p.init_strength
         self.set_mask(p.mask_image if p.init_image else "")
         self.set_input_open(bool(p.init_image))
+        self.set_lora_entries(R.entries(p.loras))
+        self._summarize_input()
+        self._summarize_advanced()
 
     def _variation_params(self):
         if not self.variations_toggle.isChecked():
             return dict(variation=0.0, variation_seed=0, variation_base="")
         return dict(variation=self.variation.value(), variation_seed=int(self.variation_seed.text() or 0),
                     variation_base=self._variation_base)
+
+    # Model
+
+    def _build_model(self):
+        self._model_value = P.DEFAULT_MODEL
+        title = medium(labelled("Model", "model"))
+        title.setObjectName("sectionTitle")
+        self.model_name = medium(QLabel())
+        change = QPushButton("Change…")
+        change.setProperty("card", True)
+        change.setToolTip("Pick another model; add new ones to your library from Hugging Face or this Mac")
+        change.clicked.connect(self.modelsRequested)
+        self.model_row = QHBoxLayout()
+        self.model_row.addWidget(title)
+        self.model_row.addSpacing(10)
+        self.model_row.addWidget(self.model_name, 1)
+        self.model_row.addWidget(change)
+        self.model_facts = QLabel()
+        self.model_facts.setForegroundRole(QPalette.PlaceholderText)
+        self.model_facts.setWordWrap(True)
+        self.use_recommended = QPushButton()
+        self.use_recommended.setProperty("card", True)
+        self.use_recommended.setToolTip("Set Steps and Adherence to what this model's page recommends")
+        self.use_recommended.clicked.connect(self._apply_recommended)
+        block = QVBoxLayout()
+        block.setContentsMargins(0, 4, 0, 0)
+        block.setSpacing(6)
+        block.addWidget(self.model_facts)
+        block.addWidget(self.use_recommended)
+        self.model_block = QWidget()
+        self.model_block.setLayout(block)
+        self.select_model(P.DEFAULT_MODEL)
+
+    def current_model(self):
+        return self._model_value
+
+    def select_model(self, value):
+        self._model_value = value
+        self.model_name.setText(M.display_name(value))
+        info = M.find(M.library_id(value)) if M.is_library(value) else None
+        if info:
+            facts = f"Trained on {info.get('trained_on') or 'a model not stated'}"
+        elif M.is_library(value):
+            facts = "Not in your model library any more: choose another"
+        else:
+            facts = {"MOSS-Image-SFT": "The polished original model", "MOSS-Image-Base": "The raw original model, "
+                     "the one people train their own versions from"}.get(M.display_name(value), "")
+        self.model_facts.setText(facts)
+        self._show_recommended()
+
+    def refresh_models(self):
+        self.select_model(self._model_value)
+
+    def _recommended(self):
+        info = M.find(M.library_id(self._model_value)) if M.is_library(self._model_value) else None
+        return (info or {}).get("recommended") or {}
+
+    def _show_recommended(self):
+        rec = self._recommended()
+        bits = []
+        if "steps" in rec:
+            bits.append(f"{rec['steps']} steps")
+        if "cfg" in rec:
+            bits.append(f"adherence {rec['cfg']:g}")
+        self.use_recommended.setText(f"Use its settings ({', '.join(bits)})" if bits else "")
+        self.use_recommended.setVisible(bool(bits))
+
+    def _apply_recommended(self):
+        rec = self._recommended()
+        if "steps" in rec:
+            self.steps.setValue(rec["steps"])
+        if "cfg" in rec:
+            self.cfg.setValue(rec["cfg"])
 
     def _update_sde_row(self, *_):
         self.advanced_form.setRowVisible(self.sde_eta, self.sampler.currentText() == "Euler SDE")

@@ -46,8 +46,10 @@ def aspect_of(width, height):
 
 
 def label(width, height):
+    """Megapixels to one significant figure below 1 MP, else to one decimal place: 0.4 MP, 0.07 MP, 1.3 MP."""
     mp = width * height / 1e6
-    return f"{mp:.2f} MP" if mp < 1 else f"{mp:.1f} MP"
+    short = f"{mp:.1g}"
+    return f"{short} MP" if float(short) < 1 else f"{mp:.1f} MP"
 
 
 def ratio_label(width, height):

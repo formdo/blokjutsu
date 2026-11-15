@@ -6,7 +6,7 @@ nav_order: 3
 
 # Describing images
 
-**Describe image** writes descriptions of a picture: a short one, a medium one, and a long one. It's MOSS-Image
+**Describe image…** writes descriptions of a picture: a short one, a medium one, and a long one. It's MOSS-Image
 read in reverse, image to text, written by the same text encoder that reads your prompts, on your Mac like
 everything else.
 
@@ -19,8 +19,8 @@ Congress, Farm Security Administration/Office of War Information collection; pub
 
 ## Where to find it
 
-- **Describe image** on any picture in your history
-- **Describe image** under the picture in **Start from image**
+- **Describe image…** on any picture in your history
+- **Describe image…** under the picture in **Start from image**
 
 Each description has **Use as prompt**, which puts it in the prompt box (⌘Z brings your own prompt back), and
 **Copy**. **Describe again** writes a fresh set.
@@ -41,5 +41,5 @@ Each description has **Use as prompt**, which puts it in the prompt box (⌘Z br
   doesn't ask for one.
 - **Text in the picture** is transcribed as written, in its own language, and the long description says where it is.
 
-Its sibling, **Enhance prompt**, turns a short prompt into the same three lengths of description; see
+Its sibling, **Enhance prompt…**, turns a short prompt into the same three lengths of description; see
 [Writing prompts](prompts.md#let-the-model-help).

@@ -36,7 +36,7 @@ Under the picture: its original size, and these buttons.
 ## Prompting
 
 The prompt matters at every setting of **Change**: describe the picture you want to end up with, not the change
-you want made. **Describe image** is a quick way to get a prompt that matches your picture, ready to edit.
+you want made. **Describe image…** is a quick way to get a prompt that matches your picture, ready to edit.
 
 ## Changing part of a picture
 
@@ -80,4 +80,4 @@ MOSS-Image makes a good upscaler:
 2. In the **MP** menu, choose ×1.5, ×2, or more (up to about 4 megapixels).
 3. Set **Change** low: **0.01** keeps the picture exactly and sharpens it, quickly; **0.05–0.1** lets the model
    add new fine detail, more slowly.
-4. Use the picture's own prompt (**Reuse settings**, then switch Start from image back on) or **Describe image**.
+4. Use the picture's own prompt (**Reuse settings**, then switch Start from image back on) or **Describe image…**.

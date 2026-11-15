@@ -30,6 +30,11 @@ class SingleInstance:
             socket.waitForBytesWritten(1000)
         return False
 
+    def release(self):
+        if self.server is not None:
+            self.server.close()
+        self.lock.unlock()
+
     def listen(self, on_activate):
         QLocalServer.removeServer(self.name)
         self.server = QLocalServer()

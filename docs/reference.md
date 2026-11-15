@@ -33,8 +33,9 @@ How many pictures to make, one after another, with the same settings. Each gets 
 
 ## Seed
 
-The number the randomness starts from. **0** (the default) means a new random seed each time. The seed actually
-used is saved with every picture, so the same seed and settings give the same picture again.
+The number the randomness starts from. With **Random** ticked (the default) each picture gets a new one; untick
+it to show the number and keep it. The seed actually used is saved with every picture, so the same seed and settings give the
+same picture again, and loading a picture's settings unticks Random.
 
 ## Steps
 
@@ -47,12 +48,6 @@ How literally the picture follows the prompt (often called CFG). 4 is the sweet 
 gives much the same picture; much lower or higher values add artifacts. At 1, guidance is off: each step takes
 half the time, but the prompt is barely followed. See the [adherence examples](examples.md#adherence).
 
-## Output
-
-The folder where pictures are saved, one sub-folder per picture. The folder button chooses another; Blokjutsu
-offers to create it if it doesn't exist. The default is kept out of Time Machine backups and Spotlight; a folder
-you choose follows your Mac's usual settings ([Backups and Spotlight](local.md#backups-and-spotlight)).
-
 ## Start from image
 
 Switch on to start from a picture instead of from scratch. See [Working from a picture](from-a-picture.md).
@@ -61,13 +56,28 @@ Switch on to start from a picture instead of from scratch. See [Working from a p
 
 Switch on to make close variations of a picture. See [Variations](variations.md).
 
+## Model
+
+The model that makes the picture, with a line about it. **Change…** lists the models on this Mac under
+**Local models**: **SFT**, the polished model and the default; **Base**, the raw one people train their own
+versions from; and [your own models](models.md), with **Manage Model Library…**. If a model's page recommends
+settings, a button applies them.
+
+## LoRAs
+
+Switch on to use LoRAs, each with a strength; **Choose LoRAs…** ticks which. See [LoRAs](loras.md).
+
 ## Advanced options
 
-Leave these alone unless you're curious. **Reset advanced** puts them back.
+Leave these alone unless you're curious. **Reset advanced** puts them back. They apply even when the section is
+closed, so its title then says **Defaults** or which settings are changed.
+
+A closed **Start from image**, **Variations** or **LoRAs** section is off, and says **Off**; if it keeps a
+picture or LoRAs for when you switch it back on, it says which.
 
 | control | what it does |
 |---|---|
-| Model | **SFT** is the polished model; **Base** is the raw one people train their own versions from |
+| Output | the folder where pictures are saved; see [Output](#output) |
 | Sampler | the method that turns noise into a picture; see [Samplers](#samplers) |
 | SDE noise η | only for the Euler SDE sampler: how much fresh randomness each step adds |
 | Shift | balances effort between overall layout (higher) and fine detail (lower); default 5 |
@@ -77,6 +87,12 @@ Leave these alone unless you're curious. **Reset advanced** puts them back.
 | Think first | Describe image and Enhance prompt plan before writing: slower, more accurate. Off each time Blokjutsu starts |
 | Settings in PNG | also writes the prompt and settings inside each new PNG file; off by default, and asks you to confirm when turned on ([more](local.md#whats-inside-a-picture-file)) |
 | Low memory | sets the text encoder aside after each prompt, to save memory; on automatically below 48 GB ([why](performance.md)) |
+
+### Output
+
+The folder where pictures are saved, one sub-folder per picture. The folder button chooses another; Blokjutsu
+offers to create it if it doesn't exist. The default is kept out of Time Machine backups and Spotlight; a folder
+you choose follows your Mac's usual settings ([Backups and Spotlight](local.md#backups-and-spotlight)).
 
 ## Samplers
 
@@ -98,9 +114,9 @@ Euler at the same seed. [Examples](examples.md#samplers-and-steps) shows all fou
 Both use MOSS-Image's own text encoder (the part that reads prompts) to write text. The first use asks to
 download a 2 GB extra piece of it.
 
-- **Describe image** (on each picture, and in Start from image) writes a short, a medium, and a long description
+- **Describe image…** (on each picture, and in Start from image) writes a short, a medium, and a long description
   of a picture; see [Describing images](describing.md).
-- **Enhance prompt** (above the prompt box) rewrites your prompt in three lengths.
+- **Enhance prompt…** (above the prompt box) rewrites your prompt in three lengths.
 
 Each version has **Use as prompt** and **Copy** under it. A description takes from a few seconds to a minute;
 with **Think first** on, several minutes.
@@ -128,6 +144,8 @@ Everything in the menus, menu by menu. Items marked *macOS* are added by the Mac
 ### File
 
 - **Generate** (⌘-Return): the same as the **Generate** button.
+- **Manage Model Library…**: [your own models](models.md): add, rename, delete; download an original again.
+- **Manage LoRA Library…**: your [LoRAs](loras.md): add, rename, set trigger words and starting strengths, delete.
 - **Import Parameters…** (⌘O): sets the controls from a `parameters.json` file, or from a PNG made with
   **Settings in PNG** turned on. Use it to repeat or adjust an image someone sent you.
 - **Show Output Folder in Finder**: opens the folder your images are saved in.

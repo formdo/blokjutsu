@@ -9,6 +9,8 @@ from pathlib import Path
 
 import logging
 
+from . import lora as R
+from . import models as M
 from . import params as P
 from . import img2img as I
 from .preview import LinearPreview
@@ -157,9 +159,39 @@ def missing_files(folder):
     return missing
 
 
+def original_folder():
+    """A downloaded original model, for the parts a library model doesn't hold (SFT first)."""
+    for repo in P.MODELS.values():
+        try:
+            return local_snapshot(repo)
+        except ModelNotDownloaded:
+            continue
+    raise ModelNotDownloaded("Models from your library use the text encoder and image decoder of MOSS-Image-SFT "
+                             "(or -Base), which aren't downloaded. Use File → Download Model… to fetch one.")
+
+
+def model_folders(model):
+    """{part: folder holding it as a subfolder}, and the single transformer file if a library model has one."""
+    if not M.is_library(model):
+        folder = local_snapshot(model)
+        return {part: folder for part in M.PARTS}, None
+    info = M.find(M.library_id(model))
+    if info is None:
+        raise ModelNotDownloaded(f"{M.display_name(model)}: this model isn't in your library any more.")
+    own = Path(info["path"])
+    single = own / M.SINGLE if (own / M.SINGLE).exists() else None
+    folders = {}
+    for part in M.PARTS:
+        if (own / part).is_dir() and not (part == "transformer" and single):
+            folders[part] = str(own)
+        elif part != "transformer" or single is None:
+            folders[part] = original_folder()
+    return folders, single
+
+
 def model_cached(model):
     try:
-        local_snapshot(model)
+        model_folders(model)
         return True
     except ModelNotDownloaded:
         return False
@@ -174,18 +206,45 @@ def load_local_first(model, on_stage):
 
     from .moss_image import MOSSImagePipeline, MOSSImageScheduler, MOSSImageTransformer
 
-    folder = local_snapshot(model)
+    folders, single = model_folders(model)
     local = dict(local_files_only=True)
+    if single is not None:
+        transformer = load_single_transformer(single, folders["scheduler"])
+    else:
+        transformer = MOSSImageTransformer.from_pretrained(
+            folders["transformer"], subfolder="transformer", torch_dtype=torch.bfloat16, **local).eval()
     pipe = MOSSImagePipeline(
-        transformer=MOSSImageTransformer.from_pretrained(
-            folder, subfolder="transformer", torch_dtype=torch.bfloat16, **local).eval(),
-        scheduler=MOSSImageScheduler.from_pretrained(folder, subfolder="scheduler", **local),
+        transformer=transformer,
+        scheduler=MOSSImageScheduler.from_pretrained(folders["scheduler"], subfolder="scheduler", **local),
         text_encoder=transformers.Qwen3_5Model.from_pretrained(
-            folder, subfolder="text_encoder", dtype=torch.bfloat16, **local).eval(),
-        tokenizer=transformers.Qwen2Tokenizer.from_pretrained(folder, subfolder="tokenizer", **local),
-        vae=AutoencoderKLFlux2.from_pretrained(folder, subfolder="vae", torch_dtype=torch.float32, **local).eval())
+            folders["text_encoder"], subfolder="text_encoder", dtype=torch.bfloat16, **local).eval(),
+        tokenizer=transformers.Qwen2Tokenizer.from_pretrained(folders["tokenizer"], subfolder="tokenizer", **local),
+        vae=AutoencoderKLFlux2.from_pretrained(
+            folders["vae"], subfolder="vae", torch_dtype=torch.float32, **local).eval())
+    folder = single or folders["transformer"]
     log.info("Loaded %s from %s; no network used.", model, folder)
     return pipe
+
+
+def load_single_transformer(path, original):
+    """An image model from one .safetensors file, built with an original model's transformer config and
+    loaded strictly, without first filling memory with throwaway weights."""
+    import torch
+    from safetensors.torch import load_file
+
+    from .moss_image import MOSSImageTransformer
+
+    config = MOSSImageTransformer.load_config(original, subfolder="transformer", local_files_only=True)
+    with torch.device("meta"):
+        transformer = MOSSImageTransformer.from_config(config)
+    state = {M.strip(k): v.to(torch.bfloat16) for k, v in load_file(str(path)).items()}
+    state.pop("rope.bands", None)
+    transformer.load_state_dict(state, strict=False, assign=True)
+    missing = [n for n, p in transformer.named_parameters() if p.is_meta]
+    if missing:
+        raise ValueError(f"{Path(path).name} is missing {len(missing)} of the image model's weights.")
+    transformer.rope.bands = transformer.rope._default_bands(torch.device("cpu"))
+    return transformer.eval()
 
 
 class Backend:
@@ -199,6 +258,8 @@ class Backend:
         self.native_scheduler = None
         self.key = None
         self.device = None
+        self.loras_key = ()          # the LoRAs now on the transformer: ((sha256, strength), ...)
+        self.lora_weights = {}       # path → weights read from it (CPU), so strength changes don't reread
 
     def ensure_loaded(self, model, compile_transformer, on_stage):
         key = (model, compile_transformer)
@@ -221,7 +282,26 @@ class Backend:
         self.exact = VaePreview()
         self.prompts = PromptCache()
         self.pipe, self.native_scheduler, self.key = pipe, pipe.scheduler, key
+        self.loras_key = ()
         log.info("Model ready on %s in %.1f s.", self.device, time.monotonic() - start)
+
+    def apply_loras(self, p):
+        """Put the picture's LoRAs on the transformer (or take them off), only if they changed."""
+        chosen = R.entries(p.loras)
+        key = tuple((e.get("sha256"), float(e.get("strength", 1.0))) for e in chosen)
+        if key == self.loras_key:
+            return
+        loaded = []
+        for e in chosen:
+            info = R.locate(e)
+            if info is None:
+                raise ValueError(f"The LoRA “{e.get('name')}” isn't in your LoRAs any more.")
+            if info["path"] not in self.lora_weights:
+                self.lora_weights[info["path"]] = R.load_weights(info["path"], info.get("alpha"))
+            loaded.append((self.lora_weights[info["path"]], float(e.get("strength", 1.0))))
+        R.attach(self.pipe.transformer, loaded)
+        self.loras_key = key
+        log.info("LoRAs: %s", ", ".join(f"{e.get('name')} × {e.get('strength')}" for e in chosen) or "none")
 
     def unload(self):
         self.pipe = self.native_scheduler = self.key = None
@@ -241,7 +321,8 @@ class Backend:
             import torch
             log.info("Reloading the text encoder (low-memory mode).")
             encoder = self.text_encoder_cls.from_pretrained(
-                local_snapshot(self.key[0]), subfolder="text_encoder", dtype=torch.bfloat16, local_files_only=True)
+                model_folders(self.key[0])[0]["text_encoder"], subfolder="text_encoder", dtype=torch.bfloat16,
+                local_files_only=True)
             self.pipe.text_encoder = encoder.to(self.device)
         return self.pipe.text_encoder
 
@@ -348,6 +429,8 @@ class Backend:
 
         self.ensure_loaded(p.model, p.compile_transformer, on_stage)
         P.validate(p, self.num_layers())
+        R.check_entries(p.loras)
+        self.apply_loras(p)
         inpaint = {}                     # z0, eps, cells (torch) and the pixel mask, when a mask is given
 
         def fresh_scheduler():

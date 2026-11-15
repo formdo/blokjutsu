@@ -84,7 +84,7 @@ Recommended 1–2 MP. The Aspect and MP menus offer sizes from 256 × 256 (0.07 
 
 ### Seed
 
-**Seed** for the initial Gaussian noise. **0 means a new random seed for each image**; the seed actually used is always recorded. The same seed with the same parameters, model, noise device, and library versions gives the same image.
+**Seed** for the initial Gaussian noise. **Random** (stored as seed 0) means a new random seed for each image; the seed actually used is always recorded. The same seed with the same parameters, model, noise device, and library versions gives the same image.
 
 ### Steps
 
@@ -297,3 +297,12 @@ area ≤ 4.2 MP). With **Start from image** on and a low **Change**, that upscal
 to the new size, encoded, re-noised to σ₀ = √Change, and denoised. At the lowest Change, 0.01 (σ₀ = 0.1), shift 5
 leaves about 1 step in 50, so the time is mostly prompt and VAE encoding and decoding. Change 0.05–0.1
 (σ₀ ≈ 0.22–0.32) runs a few more steps and lets the model add new detail.
+
+### LoRAs
+
+LoRA files are checked layer by layer against the transformer's linear layers (`lora.linear_shapes`) before
+download, from the file's header alone. Diffusers/PEFT (`lora_A`, `lora_B`), kohya/ComfyUI (`lora_down`, `lora_up`,
+`alpha`, underscored names) and LyCORIS LoKr (`lokr_w1`, `lokr_w2`, or their `_a`/`_b` factors) are read; a layer
+fused as `layers.N.proj.qkv` is mapped onto `q`, `k` and `v`. Layers are wrapped, not modified: a low-rank change is
+`s·(α/r)·B·A·x`, and a LoKr change `(W1 ⊗ W2)·x` is computed as `W1·X·W2ᵀ` with `x` reshaped to `X`, so the full
+matrix is never built. LoHa and LoKr with a Tucker core are refused.

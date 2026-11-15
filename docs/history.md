@@ -1,7 +1,7 @@
 ---
 title: Your history
 parent: Making images
-nav_order: 6
+nav_order: 8
 ---
 
 # Your history
@@ -38,7 +38,7 @@ PNG saved with that setting on.
 
 ## Clearing out
 
-**Delete all history…** (at the bottom of the controls, or in the File menu) asks first, then deletes the following.
+**Delete All History…** (in the File menu) asks first, then deletes the following.
 **They are deleted permanently, not moved to the Trash, so this can't be undone.**
 
 
@@ -46,7 +46,7 @@ PNG saved with that setting on.
 - the app's log
 - scratch files from Select area to change
 - the small file the live preview builds from your pictures
-- the prompt and settings in the controls, and prompts cached in memory
+- the prompt, layout and settings in the controls, and prompts cached in memory
 
 Your Settings and the downloaded models are kept. Files of your own in an Output folder are never touched: only
 folders Blokjutsu made (each with a `parameters.json`) are deleted. See [Running locally](local.md#where-blokjutsu-keeps-things)
