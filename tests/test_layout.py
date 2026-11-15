@@ -101,3 +101,11 @@ def test_signature_ignores_rescaling_round_trips_but_not_edits():
     moved = explore()
     moved["items"][1]["bbox"][0] += 16
     assert L.signature(moved) != L.signature(d)
+
+
+def test_empty_layout():
+    from blokjutsu import layout as L
+    draft = L.new(512, 768)
+    assert L.is_empty(draft)
+    draft["summary"]["caption"] = "a harbour at dusk"
+    assert not L.is_empty(draft)

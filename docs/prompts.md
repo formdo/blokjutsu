@@ -53,9 +53,9 @@ text, the exact words.
 
 ## Let the model help
 
-- **Enhance prompt** (above the prompt box) rewrites your prompt in three lengths. Pick one with
+- **Enhance prompt…** (above the prompt box) rewrites your prompt in three lengths. Pick one with
   **Use as prompt**; ⌘Z brings your own prompt back.
-- **Describe image** writes a description of any picture, a good starting prompt for something similar. See
+- **Describe image…** writes a description of any picture, a good starting prompt for something similar. See
   [Describing images](describing.md).
 
 The character count beside each box is just for reference; MOSS-Image reads up to about 4,000 tokens (roughly

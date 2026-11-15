@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QObject, QTimer
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QGuiApplication, QPalette
-from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QFrame, QLineEdit, QPushButton
+from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QFrame, QLabel, QLineEdit, QPushButton
 
 from .toggle import mix
 
@@ -211,8 +211,21 @@ def inset_spin_text(spin):
         edit.setTextMargins(SPIN_TEXT_INSET, 0, 0, 0)
 
 
+NOT_SELECTABLE = ("HelpLabel", "ClickLabel")      # labels that act as buttons when clicked
+
+
+def selectable(label):
+    """Let the text of a label be selected and copied (for error reports and the like)."""
+    if type(label).__name__ in NOT_SELECTABLE:
+        return
+    flags = label.textInteractionFlags()
+    if not flags & Qt.TextSelectableByMouse:
+        label.setTextInteractionFlags(flags | Qt.TextSelectableByMouse)
+
+
 class ButtonFitter(QObject):
-    """App-wide: size every push button to its label, and inset spin-box text, when polished or shown."""
+    """App-wide: size every push button to its label, inset spin-box text, and make label text selectable,
+    when polished or shown."""
 
     def eventFilter(self, obj, event):
         if event.type() in (QEvent.Polish, QEvent.Show):
@@ -220,6 +233,8 @@ class ButtonFitter(QObject):
                 fit_button(obj)
             elif isinstance(obj, QAbstractSpinBox):
                 inset_spin_text(obj)
+            elif isinstance(obj, QLabel):
+                selectable(obj)
         return False
 
 

@@ -58,9 +58,10 @@ class Params:
     mask_image: str = ""            # inpainting: path to a grayscale PNG framed like init_image; white is
                                     # regenerated, black kept, gray (the feathered edge) blended
     layout: str = ""                # a layout draft (layout.py) as JSON; when set, prompt is compiled from it
+    loras: str = ""                 # the LoRAs used, as JSON: [{"id", "name", "sha256", "strength", "trigger"}]
 
 
-ADVANCED = ("model", "sampler", "shift", "uncond_skip_layers", "slg_layers", "slg_scale",
+ADVANCED = ("sampler", "shift", "uncond_skip_layers", "slg_layers", "slg_scale",
             "slg_start", "slg_stop", "max_sequence_length", "noise_device", "compile_transformer", "sde_eta")
 FIELD_NAMES = tuple(f.name for f in fields(Params))
 
@@ -196,7 +197,8 @@ def pipeline_kwargs(p):
 
 
 def model_name(model):
-    return model.rstrip("/").rsplit("/", 1)[-1]
+    from .models import display_name
+    return display_name(model)
 
 
 _REPO_KEYS = ("prompt", "negative_prompt", "height", "width", "steps", "cfg", "shift", "num_images", "seed",
@@ -217,7 +219,8 @@ def to_record(p, image_name="image.png", **extra):
         "blokjutsu": {"noise_device": p.noise_device, "sde_eta": p.sde_eta, "variation": p.variation,
                    "variation_seed": p.variation_seed, "variation_base": p.variation_base,
                    "init_image": p.init_image, "init_strength": p.init_strength, "mask_image": p.mask_image,
-                   **({"layout": L.loads(p.layout)} if p.layout else {}), **extra},
+                   **({"layout": L.loads(p.layout)} if p.layout else {}),
+                   **({"loras": json.loads(p.loras)} if p.loras else {}), **extra},
     }
 
 
@@ -225,6 +228,8 @@ def _coerce(name, value):
     kind = type(getattr(Params(), name))
     if kind is str and isinstance(value, dict):
         return L.dumps(value)
+    if kind is str and isinstance(value, list) and name == "loras":
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":")) if value else ""
     if kind is str and isinstance(value, (list, tuple)):
         return ",".join(map(str, value))
     if kind is bool:

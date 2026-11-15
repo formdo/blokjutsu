@@ -2,9 +2,13 @@
 
     python -m blokjutsu.fetch model REPO
     python -m blokjutsu.fetch caption-head TEXT_ENCODER_DIR OUT_DIR
+    python -m blokjutsu.fetch lora-info REPO
+    python -m blokjutsu.fetch lora REPO REVISION FILE OUT_DIR
+    python -m blokjutsu.fetch model-info REPO
+    python -m blokjutsu.fetch model-files REPO REVISION OUT_DIR FILE...
     python -m blokjutsu.fetch fake SECONDS
 
-Writes one line per event to stdout: STATUS text | PROGRESS done total | DONE path | ERROR text.
+Writes one line per event to stdout: STATUS text | PROGRESS done total | INFO json | DONE path | ERROR text.
 """
 from __future__ import annotations
 
@@ -340,6 +344,146 @@ def fetch_model(repo):
     return path
 
 
+def lora_info(repo):
+    """What a LoRA repo holds, for the confirmation page: its card, the file to fetch, and that file's header
+    (read with two small range requests, so the layers can be checked before anything big is downloaded)."""
+    from huggingface_hub import HfApi, hf_hub_download
+
+    from .lora import pick_file, read_header
+
+    status(f"Asking huggingface.co about {repo}…")
+    info = HfApi().model_info(repo, files_metadata=True)
+    files = [(s.rfilename, s.size or 0) for s in info.siblings]
+    name, size = pick_file(files)
+    if name is None:
+        raise ValueError(f"{repo} has no .safetensors file.")
+    names = {n for n, _ in files}
+
+    def text(filename, limit):
+        if filename not in names:
+            return ""
+        path = hf_hub_download(repo, filename, revision=info.sha)
+        return Path(path).read_text(errors="replace")[:limit]
+
+    card = text("README.md", 40_000)
+    folder = name.rsplit("/", 1)[0] + "/" if "/" in name else ""
+    adapter = text(folder + "adapter_config.json", 20_000) or text("adapter_config.json", 20_000)
+    with http_client() as client:
+        tensors, metadata = read_header(http_reader(client, f"{HUB}/{repo}/resolve/{info.sha}/{name}"))
+    card_data = info.card_data.to_dict() if info.card_data else {}
+    emit("INFO", json.dumps({
+        "repo": repo, "revision": info.sha, "file": name, "size": size, "card": card, "card_data": card_data,
+        "adapter_config": json.loads(adapter) if adapter.strip().startswith("{") else None,
+        "tensors": {k: [d, list(s)] for k, (d, s) in tensors.items()},
+        "metadata": {k: v for k, v in metadata.items() if len(str(v)) < 2000},
+    }, ensure_ascii=False))
+    return repo
+
+
+def fetch_lora(repo, revision, filename, out_dir):
+    """Download one LoRA file at the revision that was shown, into out_dir."""
+    from huggingface_hub import HfApi, hf_hub_download
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    siblings = HfApi().model_info(repo, revision=revision, files_metadata=True).siblings
+    total = next((s.size or 0 for s in siblings if s.rfilename == filename), 0)
+    report, stop = Throttle(0.3), threading.Event()
+
+    def watch():
+        while not stop.wait(0.3):
+            done = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
+            report(min(done, total), total)
+
+    threading.Thread(target=watch, daemon=True).start()
+    status(f"Downloading {filename} from {repo}…")
+    path = hf_hub_download(repo, filename, revision=revision, local_dir=str(out))
+    stop.set()
+    emit("PROGRESS", total, total)
+    return path
+
+
+def local_blobs():
+    """SHA-256 of every large file already in Blokjutsu's model cache (the cache names its blobs by them)."""
+    from huggingface_hub.constants import HF_HUB_CACHE
+    return {p.name for p in Path(HF_HUB_CACHE).glob("models--*/blobs/*")}
+
+
+def model_info(repo):
+    """What a model repo holds, for checking before download: the image model's tensors (from headers only),
+    and which files to fetch. A part whose large files are byte-for-byte ones already here is reused, not
+    fetched again."""
+    from huggingface_hub import HfApi, hf_hub_download
+
+    from .lora import read_header
+
+    status(f"Asking huggingface.co about {repo}…")
+    info = HfApi().model_info(repo, files_metadata=True)
+    files = {s.rfilename: (s.size or 0, s.lfs.sha256 if s.lfs else None) for s in info.siblings}
+    card = ""
+    if "README.md" in files:
+        card = Path(hf_hub_download(repo, "README.md", revision=info.sha)).read_text(errors="replace")[:40_000]
+    have, reuse, fetch = local_blobs(), [], []
+    with http_client() as client:
+        def header(name):
+            return read_header(http_reader(client, f"{HUB}/{repo}/resolve/{info.sha}/{name}"))[0]
+
+        if any(n.startswith("transformer/") for n in files):
+            layout = "diffusers"
+            fetch = [n for n in files if n.startswith("transformer/")]
+            tensors = {}
+            for shard in sorted(n for n in fetch if n.endswith(".safetensors")):
+                status(f"Checking {shard}…")
+                tensors |= header(shard)
+            for part in ("text_encoder", "vae", "scheduler", "tokenizer"):
+                own = [n for n in files if n.startswith(part + "/")]
+                large = [n for n in own if files[n][1]]
+                if not own or (large and all(files[n][1] in have for n in large)):
+                    reuse.append(part)
+                else:
+                    fetch += own
+        else:
+            layout = "single"
+            single = [(n, files[n][0]) for n in files if n.endswith(".safetensors") and "/" not in n]
+            if not single:
+                raise ValueError(f"{repo} has no model file (.safetensors).")
+            name = max(single, key=lambda f: f[1])[0]
+            status(f"Checking {name}…")
+            tensors, fetch = header(name), [name]
+            reuse = ["text_encoder", "vae", "scheduler", "tokenizer"]
+    card_data = info.card_data.to_dict() if info.card_data else {}
+    emit("INFO", json.dumps({
+        "repo": repo, "revision": info.sha, "layout": layout, "card": card, "card_data": card_data,
+        "fetch": [[n, files[n][0]] for n in sorted(fetch)], "size": sum(files[n][0] for n in fetch),
+        "reuse": reuse, "tensors": {k: [d, list(s)] for k, (d, s) in tensors.items()},
+    }, ensure_ascii=False))
+    return repo
+
+
+def model_files(repo, revision, out_dir, *names):
+    """Download the listed files of a model repo, at the revision that was checked, into out_dir."""
+    from huggingface_hub import HfApi, hf_hub_download
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    sizes = {s.rfilename: s.size or 0 for s in HfApi().model_info(repo, revision=revision,
+                                                                  files_metadata=True).siblings}
+    total = sum(sizes.get(n, 0) for n in names)
+    report, stop = Throttle(0.5), threading.Event()
+
+    def watch():
+        while not stop.wait(0.5):
+            report(min(sum(p.stat().st_size for p in out.rglob("*") if p.is_file()), total), total)
+
+    threading.Thread(target=watch, daemon=True).start()
+    for name in names:
+        status(f"Downloading {name}…")
+        hf_hub_download(repo, name, revision=revision, local_dir=str(out))
+    stop.set()
+    emit("PROGRESS", total, total)
+    return str(out)
+
+
 def fake(seconds):
     """Simulated download for --fake: no network."""
     status("Simulated download (fake backend): nothing is contacted.")
@@ -353,7 +497,8 @@ def fake(seconds):
 def main(argv):
     try:
         kind, *args = argv
-        path = {"model": fetch_model, "caption-head": fetch_caption_head,
+        path = {"model": fetch_model, "caption-head": fetch_caption_head, "lora-info": lora_info,
+                "lora": fetch_lora, "model-info": model_info, "model-files": model_files,
                 "fake": lambda s: fake(float(s))}[kind](*args)
         emit("DONE", path)
         return 0

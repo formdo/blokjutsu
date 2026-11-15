@@ -16,7 +16,8 @@ log = logging.getLogger(__name__)
 BLUE = "#3662e3"
 RED = "#d70015"
 SYMBOLS = {"rotate": "rotate.right", "folder": "folder", "copy": "doc.on.doc", "trash": "trash",
-           "remove": "xmark", "photo": "photo"}
+           "remove": "xmark", "photo": "photo",
+           "external": "arrow.up.right.square"}
 POINT_SIZE = 13
 _cache = {}
 

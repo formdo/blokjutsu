@@ -25,8 +25,8 @@ of steps, and the speed of your Mac. See the measured times in [Speed and memory
 30 GB of memory while it works. That is why Blokjutsu needs a Mac with at least 32 GB, and 48 GB or more is
 comfortable. See [What you need](install.md#what-you-need) and [Speed and memory](performance.md).
 
-**Why are two pictures with the same prompt different?** Each picture starts from a different random seed. Use
-the same **Seed** to repeat a picture, or [Variations](variations.md) to stay close to one.
+**Why are two pictures with the same prompt different?** Each picture starts from a different random seed. Untick
+**Random** and keep the same **Seed** to repeat a picture, or [Variations](variations.md) to stay close to one.
 
 **Can it make video?** Not yet.
 

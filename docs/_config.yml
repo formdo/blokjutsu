@@ -4,6 +4,7 @@ remote_theme: just-the-docs/just-the-docs@v0.10.0
 plugins:
   - jekyll-remote-theme
   - jekyll-relative-links
+  - jekyll-sitemap
 logo: /assets/icon.png
 favicon_ico: /assets/icon.png
 color_scheme: blokjutsu
@@ -12,10 +13,14 @@ heading_anchors: true
 # Large picture in link previews; set per page with `image:` in front matter.
 twitter:
   card: summary_large_image
+url: https://formdo.github.io
 baseurl: /blokjutsu
+# Google Search Console's ownership check (the HTML tag method): paste the content="…" value from its tag.
+webmaster_verifications:
+  google: 5L6KKnhEltqIRytarNM-gs-gbCA2oUPcF12Txlq2vko
 # The current release, used by _includes/download.html and the install steps.
 release:
-  version: 1.0.0rc4
+  version: 1.0.0
   size: 360 MB
 exclude:
   - README.md

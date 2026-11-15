@@ -163,6 +163,11 @@ def signature(draft):
                                              for it in draft.get("items", [])]], sort_keys=True)
 
 
+def is_empty(draft):
+    """No boxes and no description: nothing to use as a prompt or to keep."""
+    return not draft["items"] and not draft["summary"].get("caption", "").strip()
+
+
 def describe(draft):
     """One line for the controls and the history: the picture's description and how many boxes."""
     n = len(draft["items"])

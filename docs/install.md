@@ -1,10 +1,10 @@
 ---
-title: Install and Uninstall
+title: Install and uninstall
 parent: Reference
 nav_order: 4
 ---
 
-# Install and Uninstall
+# Install and uninstall
 
 {% include download.html %}
 

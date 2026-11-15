@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from .. import img2img as I
 from .. import layout as L
+from .. import lora as R
 from .. import params as P
 from .image_cache import ImageCache
 from .icons import BLUE, RED, icon
@@ -34,6 +35,7 @@ def summary(p, elapsed=None):
                     else f"variation {p.variation:.2f}")
     if p.init_image:
         bits.append(f"{'inpainted' if p.mask_image else 'from image'}, change {I.sigma_to_change(p.init_strength):.2f}")
+    bits += [f"LoRA {e.get('name')} × {float(e.get('strength', 1)):g}" for e in R.entries(p.loras)]
     bits += [f"{p.steps} steps", f"adherence {p.cfg:g}", p.sampler, P.model_name(p.model)]
     if elapsed:
         bits.append(f"{clock(elapsed)} m:s" if elapsed >= 60 else f"{elapsed:.0f} s")
@@ -183,9 +185,9 @@ class ButtonGrid(QWidget):
 CARD_TIPS = {
     "Generate similar image": "Make new pictures that are close variations of this one",
     "Use as input": "Start a new picture from this one (Start from image)",
-    "Describe image": "Write a description of this picture that you can use as a prompt",
+    "Describe image…": "Write a description of this picture that you can use as a prompt",
     "Reuse settings": "Put this picture's prompt and settings back in the controls",
-    "Edit layout": "Put this picture's settings back and open its layout, with the picture behind the boxes",
+    "Edit layout…": "Put this picture's settings back and open its layout, with the picture behind the boxes",
     "Copy seed": "Copy the seed number",
     "Copy prompt": "Copy the prompt text",
     "Open in Preview": "Open the picture in the Mac's Preview app",
@@ -217,9 +219,9 @@ class EntryCard(Card):
         self.caption(summary(entry.params, entry.elapsed))
         self.caption(prompt_text(entry.params), muted=True, rich=True)
         actions = [("Generate similar image", self.vary, None), ("Use as input", self.use_input, None),
-                   ("Describe image", self.describe, None),
+                   ("Describe image…", self.describe, None),
                    ("Reuse settings", self.reuse, None),
-                   *([("Edit layout", self.edit_layout, None)] if entry.params.layout else []),
+                   *([("Edit layout…", self.edit_layout, None)] if entry.params.layout else []),
                    ("Copy seed", self.copySeed, "copy"),
                    ("Copy prompt", self.copyPrompt, "copy"), ("Open in Preview", self.open_, None),
                    ("Show in Finder", self.reveal, "folder"),

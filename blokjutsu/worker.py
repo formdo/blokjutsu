@@ -59,7 +59,17 @@ class Worker(QObject):
         self.cancelled_ids = set()
         self.lock = threading.Lock()
         self.current = None
-        threading.Thread(target=self._run, daemon=True, name="moss-worker").start()
+        self.thread = threading.Thread(target=self._run, daemon=True, name="moss-worker")
+        self.thread.start()
+
+    def stop(self, timeout=5):
+        """Cancel everything queued or running, end the thread, and wait for it (a step can't be interrupted)."""
+        with self.lock:
+            self.cancelled_ids.update(j.id for j in list(self.jobs.queue))
+            if self.current is not None:
+                self.cancelled_ids.add(self.current)
+        self.jobs.put(None)
+        self.thread.join(timeout)
 
     def submit(self, job):
         self.jobs.put(job)
@@ -78,6 +88,8 @@ class Worker(QObject):
     def _run(self):
         while True:
             job = self.jobs.get()
+            if job is None:
+                return
             if self._is_cancelled(job.id):
                 self.cancelled.emit(job.id)
                 continue

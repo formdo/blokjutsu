@@ -17,9 +17,11 @@ from PySide6.QtWidgets import (
 from .. import __version__
 
 from .. import layout as L
+from .. import lora as R
+from .. import models as M
 from .. import params as P
 from .. import store
-from ..backend import local_snapshot
+from ..backend import local_snapshot, model_folders
 from ..logs import clear_logs
 from ..settings import Settings, app_home, default_output, physical_memory, prepare_home, tilde
 from ..worker import DescribeJob, Job, Worker
@@ -152,11 +154,12 @@ class MainWindow(QMainWindow):
         self._download_dialog = None
 
         self.controls.generateRequested.connect(self.generate)
-        self.controls.deleteHistoryRequested.connect(self.delete_all_history)
         self.controls.describeRequested.connect(self.describe_image)
         self.controls.enhanceRequested.connect(self.enhance_prompt)
         self.controls.maskRequested.connect(self.edit_mask)
         self.controls.layoutRequested.connect(self.edit_layout)
+        self.controls.lorasRequested.connect(self.pick_lora)
+        self.controls.modelsRequested.connect(self.choose_model)
         self.discarded = set()
         self.controls.outputDirEdited.connect(self.change_output_dir)
         self._hide_status = QTimer(self, singleShot=True, timeout=lambda: self.notify(None))
@@ -186,6 +189,9 @@ class MainWindow(QMainWindow):
         action(file_menu, "Generate", self.generate, "Ctrl+Return")
         action(file_menu, "Import Parameters…", self.import_parameters, QKeySequence.Open)
         file_menu.addSeparator()
+        action(file_menu, "Manage Model Library…", self.manage_models)
+        action(file_menu, "Manage LoRA Library…", self.manage_loras)
+        file_menu.addSeparator()
         action(file_menu, "Show Output Folder in Finder", lambda: self._reveal(self.output_dir))
         action(file_menu, "Show App Data in Finder", lambda: self._reveal(app_home()))
         file_menu.addSeparator()
@@ -194,7 +200,8 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         action(file_menu, "Delete All History…", self.delete_all_history)
 
-        edit_menu = bar.addMenu("Edit")
+        from ..app import EDIT_TITLE
+        edit_menu = self.edit_menu = bar.addMenu(EDIT_TITLE)
         for item in EDIT_ACTIONS:
             if item is None:
                 edit_menu.addSeparator()
@@ -321,13 +328,20 @@ class MainWindow(QMainWindow):
             "encoder is set aside after reading each prompt, but macOS may still swap to disk and pictures may "
             "take much longer.")
 
-    def open_download(self, kind, first_run=False, then=None):
-        """Ask, then download 'model' or the 'caption' head; `then` runs after a successful download."""
+    def open_download(self, kind, first_run=False, then=None, model=None):
+        """Ask, then download 'model' or the 'caption' head; `then` runs after a successful download. For a model
+        from the library, the original model it takes its other parts from is the one downloaded."""
         if self._download_dialog is not None:
             self._download_dialog.raise_()
             self._download_dialog.activateWindow()
             return
-        model = self.controls.params().model
+        model = model or self.controls.params().model
+        if M.is_library(model):
+            if M.find(M.library_id(model)) is None:
+                QMessageBox.warning(self, "Model", f"{M.display_name(model)}. Choose another model in Advanced "
+                                    "options, or add it again in Manage Model Library…")
+                return
+            model = P.DEFAULT_MODEL
         fake = self.backend.fake
         if kind == "model":
             spec = model_spec(model, first_run, fake)
@@ -340,7 +354,8 @@ class MainWindow(QMainWindow):
                     "Describe image and Enhance prompt use it without any network access. Download it again "
                     "only to repair a damaged copy.", "Download again"):
                 return
-            spec = caption_spec(None if fake else Path(local_snapshot(model)) / "text_encoder", fake)
+            spec = caption_spec(None if fake else Path(model_folders(model)[0]["text_encoder"]) / "text_encoder",
+                                fake)
         dialog = DownloadDialog(spec, self)
         done = []
         dialog.succeeded.connect(lambda k: (done.append(k), self.backend.downloaded(k)))
@@ -392,6 +407,46 @@ class MainWindow(QMainWindow):
         self.notify("Prompt replaced (⌘Z to undo).", 6000)
 
     # inpainting / outpainting
+
+    def choose_model(self):
+        from .models import ModelChooser
+
+        ModelChooser(self.controls.select_model, self.controls.current_model(), lambda repo: self.backend.has("model", repo),
+                     self.manage_models, self).exec()
+        self.controls.refresh_models()
+
+    def manage_models(self):
+        from .models import ModelLibrary
+
+        ModelLibrary(self, self.controls.current_model(), lambda repo: self.backend.has("model", repo),
+                     lambda repo: QTimer.singleShot(0, lambda: self.open_download("model", model=repo)),
+                     self._delete_original).exec()
+        self.controls.refresh_models()
+        current = self.controls.current_model()
+        if M.is_library(current) and M.find(M.library_id(current)) is None:
+            self.controls.select_model(P.DEFAULT_MODEL)
+
+    def _delete_original(self, repo):
+        """Remove an original model's downloaded files (Blokjutsu's own cache), unloading it first if in use."""
+        import shutil
+        from huggingface_hub.constants import HF_HUB_CACHE
+
+        if getattr(self.backend, "pipe", None) is not None:      # it, or a library model using its parts
+            self.backend.unload()
+        shutil.rmtree(Path(HF_HUB_CACHE) / ("models--" + repo.replace("/", "--")), ignore_errors=True)
+        self.notify(f"Deleted {M.display_name(repo)}. Manage Model Library… can download it again.", 8000)
+
+    def pick_lora(self):
+        from .loras import LoraChooser
+
+        LoraChooser(self.controls.add_lora, self.controls.remove_lora, self.controls.lora_ids(), self).exec()
+        self.controls.refresh_loras()
+
+    def manage_loras(self):
+        from .loras import LoraLibrary
+
+        LoraLibrary(self, self.controls.lora_ids()).exec()
+        self.controls.refresh_loras()
 
     def edit_layout(self, backdrop=None):
         from .layout_editor import LayoutEditor
@@ -499,7 +554,14 @@ class MainWindow(QMainWindow):
         self.settings.set("image_cache_mb", self.history.cache.budget >> 20)
         self.settings.set("output_dir", str(self.output_dir))
         self.settings.save()
+        self.shutdown()
         event.accept()
+
+    def shutdown(self):
+        """Stop background work before Qt and Python tear down: no thumbnail decodes or generation left running."""
+        self.history.cache.pool.clear()
+        self.history.cache.pool.waitForDone(2000)
+        self.worker.stop(timeout=5)
 
     # output folder
 
@@ -545,6 +607,7 @@ class MainWindow(QMainWindow):
         p = self.controls.params()
         try:
             P.validate(p)
+            R.check_entries(p.loras)
         except ValueError as exc:
             QMessageBox.warning(self, "Cannot generate", str(exc))
             return
@@ -708,8 +771,10 @@ class MainWindow(QMainWindow):
         self.history.set_entries(store.scan(self.output_dir))
         self.history.cache.clear()
         self.controls.set_params(P.Params())
+        self.controls.set_layout(None)
         self.controls.input_well.set_path("")
         self.settings.set("params", json.loads(P.to_json(self.controls.params())))
+        self.settings.set("kept_layout", "")
         self.settings.set("output_roots", [str(self.output_dir)])
         self.settings.save()
         self.backend.forget()

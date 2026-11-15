@@ -39,7 +39,23 @@ def set_macos_app_name(name):
         info["CFBundleName"] = name
 
 
-UNWANTED_EDIT_ITEMS = {"Writing Tools", "AutoFill"}
+UNWANTED_EDIT_ITEMS = {"Writing Tools", "AutoFill", "Start Dictation…", "Emoji & Symbols"}
+EDIT_TITLE = "Edit\u2060"    # "Edit" with an invisible word joiner: AppKit adds its own items to a menu named "Edit"
+
+
+def no_system_edit_items():
+    """Ask AppKit, in this app's own defaults, not to add Dictation, Emoji & Symbols or AutoFill; call before
+    the QApplication exists."""
+    if sys.platform != "darwin":
+        return
+    try:
+        from Foundation import NSUserDefaults
+    except ImportError:
+        return
+    defaults = NSUserDefaults.standardUserDefaults()
+    defaults.setBool_forKey_(True, "NSDisabledDictationMenuItem")
+    defaults.setBool_forKey_(True, "NSDisabledCharacterPaletteMenuItem")
+    defaults.setBool_forKey_(False, "NSAutoFillHeuristicControllerEnabled")
 
 
 def trim_edit_menu():
@@ -50,7 +66,8 @@ def trim_edit_menu():
         from AppKit import NSApplication
     except ImportError:
         return
-    item = NSApplication.sharedApplication().mainMenu().itemWithTitle_("Edit")
+    main = NSApplication.sharedApplication().mainMenu()
+    item = main.itemWithTitle_(EDIT_TITLE) or main.itemWithTitle_("Edit")
     menu = item.submenu() if item is not None else None
     if menu is None:
         return
@@ -114,6 +131,7 @@ def main(argv=None):
     quiet_third_party()
 
     set_macos_app_name("Blokjutsu")
+    no_system_edit_items()
     app = QApplication([sys.argv[0], *qt_args])
     app.setApplicationName("Blokjutsu")
     app.setOrganizationName("Blokjutsu")
@@ -144,5 +162,9 @@ def main(argv=None):
     instance.listen(window.bring_to_front)
     window.show()
     QTimer.singleShot(0, trim_edit_menu)
-    QTimer.singleShot(2000, trim_edit_menu)
-    sys.exit(app.exec())
+    window.edit_menu.aboutToShow.connect(trim_edit_menu)     # AppKit may add items again when the menu opens
+    code = app.exec()
+    window.shutdown()
+    instance.release()
+    logging.shutdown()
+    os._exit(code)      # skip interpreter teardown, where PyTorch's Metal state and Qt objects can crash on exit

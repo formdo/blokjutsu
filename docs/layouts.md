@@ -64,12 +64,13 @@ and a box for each glass, side by side, so the glasses meet in a toast.
 
 ## Using, setting aside, and deleting a layout
 
-- While a layout is in use, the prompt box shows its description and how many boxes it has. Click it to edit.
-- **Remove layout** goes back to the typed prompt. The layout is kept, even after you quit, and **Layout…**
-  brings it back.
+- While a layout is in use, the prompt box shows **Layout in use:**, its description and how many boxes it
+  has. Click it to edit.
+- **Remove layout** goes back to the typed prompt. The layout is kept, even after you quit, and a grey line under
+  the prompt says so; **Layout…** (or the line) brings it back. **Delete All History…** deletes it.
 - **Delete layout** throws it away. It only asks first if the layout would be lost for good: if a picture was made
   from it as it is, it's deleted at once.
-- Every picture made from a layout keeps it. **Edit layout** on the picture's card puts its settings back and
+- Every picture made from a layout keeps it. **Edit layout…** on the picture's card puts its settings back and
   opens the layout with the picture behind the boxes, so you can see what to nudge. **Reuse settings** brings
   the layout back too.
 
