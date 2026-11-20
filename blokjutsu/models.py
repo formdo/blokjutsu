@@ -16,7 +16,9 @@ import shutil
 import time
 from pathlib import Path
 
+from . import lora as R
 from .lora import DEFAULT_CONFIG, _slug, read_header, sha256
+from .params import EDIT_MODELS
 from .settings import app_home
 
 PREFIX = "library:"
@@ -118,22 +120,7 @@ def transformer_weights(folder):
 
 # what the card says
 
-STEPS = re.compile(r"(\d{1,3})\s*(?:inference\s+|sampling\s+)?steps", re.I)
-CFG = re.compile(r"(?:cfg|guidance(?:\s+scale)?|adherence)\s*(?:scale)?\s*(?:of|[:=]|is)?\s*(\d{1,2}(?:\.\d+)?)", re.I)
-
-
-def recommended(card_text):
-    """{'steps': n, 'cfg': x} where the card recommends them, as for fast ("turbo") fine-tunes; may be empty."""
-    found = {}
-    near = [m.start() for m in re.finditer(r"recommend|suggest|default|use|best", card_text or "", re.I)]
-    for key, pattern, kind in (("steps", STEPS, int), ("cfg", CFG, float)):
-        for m in pattern.finditer(card_text or ""):
-            if any(0 <= m.start() - n < 200 for n in near):
-                value = kind(m.group(1))
-                if (key == "steps" and 1 <= value <= 200) or (key == "cfg" and 0 < value <= 20):
-                    found[key] = value
-                    break
-    return found
+recommended = R.recommended          # the settings a model card recommends (shared with LoRAs)
 
 
 # the library
@@ -181,7 +168,8 @@ def add(source, info, move=False):
                 (shutil.move if move else shutil.copytree)(str(source / part), str(folder / part))
     stored = {"name": info.get("name") or source.stem, "trained_on": info.get("trained_on", ""),
               "license": info.get("license", ""), "source": info.get("source", {}),
-              "recommended": info.get("recommended", {}), "sha256": digest, "added": round(time.time())}
+              "recommended": info.get("recommended", {}), "family": info.get("family", "moss"), "sha256": digest,
+              "added": round(time.time())}
     (folder / INFO).write_text(json.dumps(stored, indent=2, ensure_ascii=False) + "\n")
     return {**stored, "id": folder.name, "path": str(folder)}
 
@@ -195,6 +183,17 @@ def update(model_id, **fields):
 
 def remove(model_id):
     shutil.rmtree(library_dir() / model_id, ignore_errors=True)
+
+
+ORIGINAL_FAMILIES = {repo: "qwen-image" for repo in EDIT_MODELS.values()}   # originals outside the MOSS family
+ORIGINAL_SIZES = {"qwen-image": 58e9, "moss": 30e9}                           # bytes, about
+
+
+def family_of(model):
+    """The model family ('moss', 'qwen-image') a model value belongs to: which LoRAs fit it."""
+    if is_library(model):
+        return (find(library_id(model)) or {}).get("family", "moss")
+    return ORIGINAL_FAMILIES.get(model, "moss")
 
 
 def display_name(model):

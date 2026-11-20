@@ -11,8 +11,9 @@ prompt. The text can be selected and copied.
 
 | button | does |
 |---|---|
-| Generate similar image | [variations](variations.md) of this picture |
+| Generate similar image | [variations](variations.md) of this picture (not for edits) |
 | Use as input | [starts a new picture](from-a-picture.md) from this one |
+| Edit this picture | puts it under Start from image with **Edit** chosen, ready for an [instruction](editing.md) |
 | Describe image | writes descriptions of it |
 | Reuse settings | puts its prompt and all settings back in the controls |
 | Edit layout | for a picture made from a [layout](layouts.md): its settings back, and its layout open over it |

@@ -23,8 +23,9 @@ strength.
    page's `README.md` beside it and Blokjutsu reads the trigger word and other details from it too.
 4. Close the library; the new LoRA is in the list to tick.
 
-Only LoRAs made for MOSS-Image can be added: Blokjutsu checks every layer in the file against the model, and
-says so if a LoRA was made for something else. Both ordinary LoRAs and LoKr adapters (another way of
+Blokjutsu checks every layer in the file against the models it runs, files the LoRA under the model it fits
+(**Works with** in the library), and says so if it fits none. **Choose LoRAs…** lists only LoRAs that fit the
+model in use. Both ordinary LoRAs and LoKr adapters (another way of
 storing the same kind of add-on) work. A LoRA trained on MOSS-Image-Base works with MOSS-Image-SFT too:
 the two models have the same structure. **Find LoRAs on Hugging Face** opens their site in your browser, showing
 only those.
@@ -51,11 +52,25 @@ they tend to overpower the picture. When a LoRA's page recommends a strength, it
 
 Switching **LoRAs** off makes pictures without them; the list is kept for when you switch it on again.
 
+## Fast LoRAs and their settings
+
+Some LoRAs make pictures in a few steps instead of 30: they are *distilled* from the full model, and only work with
+the settings they were trained for, such as "4 steps, adherence 1". When a LoRA's page gives its settings,
+Blokjutsu reads them, and the LoRAs section offers **Use *name*'s settings**, which sets Steps and Adherence (and,
+for LoRAs that need one, a fixed **Schedule** in Advanced options). If its page doesn't say, type them as its
+**Settings** in **Manage LoRA Library…**, the way the page puts them: `8 steps, adherence 1`, or
+`4 steps, adherence 1, schedule 1, 0.91, 0.717, 0.024`.
+
+At Adherence 1 each step runs the model once, not twice, so a 4- or 8-step LoRA makes a picture several times
+faster. Distilled LoRAs are trained at particular sizes; far outside them (much smaller, or larger than about
+2 megapixels) their pictures may suffer.
+
 ## Your LoRAs
 
 LoRAs are copied into Blokjutsu's own folder, so a picture made with one can always be made again. Each picture
 records the LoRAs it used and their strengths; **Reuse settings** puts them back.
 
-**Manage LoRA Library…** renames them, sets their trigger words and the strength they start at, and deletes
+**Manage LoRA Library…** renames them, sets their trigger words, the strength they start at and their settings,
+and deletes
 them (select several to delete them together). It asks first only if one came from a file, since a LoRA from
 Hugging Face can be downloaded again.

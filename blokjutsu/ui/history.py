@@ -33,10 +33,14 @@ def summary(p, elapsed=None):
     if p.variation > 0:
         bits.append(f"variation {p.variation:.2f} (seed {p.variation_seed})" if p.variation_seed
                     else f"variation {p.variation:.2f}")
-    if p.init_image:
+    edit = P.is_edit(p)
+    if edit:
+        extra = len(P.references(p))
+        bits.append("edited" + (f", with {extra} more picture{'s' if extra > 1 else ''}" if extra else ""))
+    elif p.init_image:
         bits.append(f"{'inpainted' if p.mask_image else 'from image'}, change {I.sigma_to_change(p.init_strength):.2f}")
     bits += [f"LoRA {e.get('name')} × {float(e.get('strength', 1)):g}" for e in R.entries(p.loras)]
-    bits += [f"{p.steps} steps", f"adherence {p.cfg:g}", p.sampler, P.model_name(p.model)]
+    bits += [f"{p.steps} steps", f"adherence {p.cfg:g}", *([] if edit else [p.sampler]), P.model_name(p.model)]
     if elapsed:
         bits.append(f"{clock(elapsed)} m:s" if elapsed >= 60 else f"{elapsed:.0f} s")
     return " · ".join(bits)
@@ -185,6 +189,7 @@ class ButtonGrid(QWidget):
 CARD_TIPS = {
     "Generate similar image": "Make new pictures that are close variations of this one",
     "Use as input": "Start a new picture from this one (Start from image)",
+    "Edit this picture": "Change this picture with an instruction (Start from image → Edit)",
     "Describe image…": "Write a description of this picture that you can use as a prompt",
     "Reuse settings": "Put this picture's prompt and settings back in the controls",
     "Edit layout…": "Put this picture's settings back and open its layout, with the picture behind the boxes",
@@ -200,6 +205,7 @@ class EntryCard(Card):
     reuse = Signal(object)
     vary = Signal(object)
     use_input = Signal(object)
+    edit_picture = Signal(object)
     describe = Signal(object)
     copySeed = Signal(object)
     copyPrompt = Signal(object)
@@ -218,7 +224,9 @@ class EntryCard(Card):
         self.layout_.addWidget(self.image)
         self.caption(summary(entry.params, entry.elapsed))
         self.caption(prompt_text(entry.params), muted=True, rich=True)
-        actions = [("Generate similar image", self.vary, None), ("Use as input", self.use_input, None),
+        actions = [*([] if P.is_edit(entry.params) else [("Generate similar image", self.vary, None)]),
+                   ("Use as input", self.use_input, None),
+                   ("Edit this picture", self.edit_picture, None),
                    ("Describe image…", self.describe, None),
                    ("Reuse settings", self.reuse, None),
                    *([("Edit layout…", self.edit_layout, None)] if entry.params.layout else []),
@@ -260,6 +268,7 @@ class PendingCard(Card):
         self.caption(prompt_text(params), muted=True, rich=True)
         self.progress = QProgressBar()
         self.progress.setRange(0, 0)
+        self.progress.setTextVisible(False)     # the card says the step; the thin bar has no room for a percentage
         self.progress.hide()
         self.button = QPushButton("Cancel")
         self.button.setProperty("card", True)

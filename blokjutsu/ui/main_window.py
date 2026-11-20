@@ -310,7 +310,7 @@ class MainWindow(QMainWindow):
     # downloads: the app's only network access, each confirmed in DownloadDialog
 
     def _check_first_run(self):
-        if not self.backend.has("model", self.controls.params().model):
+        if not self.backend.has("model", self.controls.generation_model()):
             self.open_download("model", first_run=True)
         else:
             self._check_memory()
@@ -378,7 +378,7 @@ class MainWindow(QMainWindow):
 
     def _write(self, path, request):
         """Describe the image at `path`, or expand the prompt `request` (Enhance Prompt)."""
-        model = self.controls.params().model
+        model = self.controls.generation_model()
         for what in ("model", "caption"):
             if not self.backend.has(what, model):
                 self.open_download(what, first_run=what == "model", then=lambda: self._write(path, request))
@@ -397,7 +397,7 @@ class MainWindow(QMainWindow):
         dialog.working()
         dialog.job_id = next(self.job_ids)
         self.describing[dialog.job_id] = dialog
-        self.worker.submit(DescribeJob(dialog.job_id, self.controls.params().model,
+        self.worker.submit(DescribeJob(dialog.job_id, self.controls.generation_model(),
                                        Path(dialog.path) if dialog.path else None, thinking, dialog.request))
 
     def _use_caption(self, text):
@@ -412,7 +412,7 @@ class MainWindow(QMainWindow):
         from .models import ModelChooser
 
         ModelChooser(self.controls.select_model, self.controls.current_model(), lambda repo: self.backend.has("model", repo),
-                     self.manage_models, self).exec()
+                     self.manage_models, self, M.family_of(self.controls.current_model())).exec()
         self.controls.refresh_models()
 
     def manage_models(self):
@@ -433,13 +433,16 @@ class MainWindow(QMainWindow):
 
         if getattr(self.backend, "pipe", None) is not None:      # it, or a library model using its parts
             self.backend.unload()
+        if getattr(self.backend, "edit_key", None) == repo:
+            self.backend.unload_edit()
         shutil.rmtree(Path(HF_HUB_CACHE) / ("models--" + repo.replace("/", "--")), ignore_errors=True)
         self.notify(f"Deleted {M.display_name(repo)}. Manage Model Library… can download it again.", 8000)
 
     def pick_lora(self):
         from .loras import LoraChooser
 
-        LoraChooser(self.controls.add_lora, self.controls.remove_lora, self.controls.lora_ids(), self).exec()
+        LoraChooser(self.controls.add_lora, self.controls.remove_lora, self.controls.lora_ids(), self,
+                    M.family_of(self.controls.current_model())).exec()
         self.controls.refresh_loras()
 
     def manage_loras(self):
@@ -607,7 +610,7 @@ class MainWindow(QMainWindow):
         p = self.controls.params()
         try:
             P.validate(p)
-            R.check_entries(p.loras)
+            R.check_entries(p.loras, M.family_of(p.model))
         except ValueError as exc:
             QMessageBox.warning(self, "Cannot generate", str(exc))
             return
@@ -699,6 +702,7 @@ class MainWindow(QMainWindow):
         card.reuse.connect(self._reuse)
         card.vary.connect(self._vary)
         card.use_input.connect(lambda e: self.controls.set_input_image(str(e.image)))
+        card.edit_picture.connect(lambda e: self.controls.edit_picture(str(e.image)))
         card.describe.connect(lambda e: self.describe_image(str(e.image)))
         card.copySeed.connect(lambda e: clipboard.setText(str(e.params.seed)))
         card.copyPrompt.connect(lambda e: clipboard.setText(e.params.prompt))

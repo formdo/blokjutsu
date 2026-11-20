@@ -16,10 +16,11 @@ from . import img2img as I
 from .preview import LinearPreview
 from .vae_preview import VaePreview
 from .samplers import make_scheduler
-from .settings import app_home
+from .settings import app_home, physical_memory
 from .moss_forward import mps_transformer_forward, reset_step_cache
 
 PREVIEW_INTERVAL = 0.5   # seconds between live previews
+BOTH_LOADED_FROM = 120 * 2**30     # memory from which the generation and editing models are kept loaded together
 log = logging.getLogger(__name__)
 
 
@@ -247,6 +248,44 @@ def load_single_transformer(path, original):
     return transformer.eval()
 
 
+def load_edit_pipeline(model):
+    """Diffusers' QwenImageEditPlusPipeline from the cached snapshot alone: its classes come from Diffusers and
+    Transformers, never from the repository, and the Hub is never asked anything."""
+    import torch
+    from diffusers import QwenImageEditPlusPipeline
+
+    folder = local_snapshot(model)
+    pipe = QwenImageEditPlusPipeline.from_pretrained(folder, torch_dtype=torch.bfloat16, local_files_only=True)
+    pipe.set_progress_bar_config(disable=True)
+    log.info("Loaded %s from %s; no network used.", model, folder)
+    return pipe
+
+
+EDIT_PREVIEW_SHARE = 0.1      # at most this share of an edit's time goes on live previews
+
+
+def edit_preview(pipe, x0, height, width):
+    """The edit's current estimate of the finished picture, x̂₀ (packed latents), decoded at half size: (H/2, W/2, 3)
+    uint8. Decoded as the pipeline decodes, from latents averaged 2 × 2, so it costs about a quarter of the final
+    decode."""
+    import torch
+
+    latents = pipe._unpack_latents(x0, height, width, pipe.vae_scale_factor).to(pipe.vae.dtype)
+    latents = torch.nn.functional.avg_pool3d(latents, (1, 2, 2))
+    shape = (1, pipe.vae.config.z_dim, 1, 1, 1)
+    mean = torch.tensor(pipe.vae.config.latents_mean).view(shape).to(latents)
+    std = torch.tensor(pipe.vae.config.latents_std).view(shape).to(latents)
+    image = pipe.vae.decode(latents * std + mean, return_dict=False)[0][:, :, 0]
+    image = ((image[0].float().clamp(-1, 1) + 1) * 127.5).round().byte()
+    return image.permute(1, 2, 0).cpu().numpy()
+
+
+def edit_source(path):
+    """A picture to edit, upright and in RGB."""
+    from PIL import Image, ImageOps
+    return ImageOps.exif_transpose(Image.open(path)).convert("RGB")
+
+
 class Backend:
     def __init__(self):
         self.low_memory = False          # unload the text encoder after encoding; reload on a new prompt
@@ -260,6 +299,13 @@ class Backend:
         self.device = None
         self.loras_key = ()          # the LoRAs now on the transformer: ((sha256, strength), ...)
         self.lora_weights = {}       # path → weights read from it (CPU), so strength changes don't reread
+        self.edit = None             # the editing pipeline (Qwen-Image-Edit), loaded beside or instead of self.pipe
+        self.edit_key = None
+        self.edit_loras_key = ()
+
+    def room_for_both(self):
+        """Keep the generation and editing models loaded together (about 30 + 58 GB) when memory allows."""
+        return not self.low_memory and (physical_memory() or 0) >= BOTH_LOADED_FROM
 
     def ensure_loaded(self, model, compile_transformer, on_stage):
         key = (model, compile_transformer)
@@ -269,6 +315,8 @@ class Backend:
         start = time.monotonic()
         on_stage("load", 0)
         self.unload()
+        if self.edit is not None and not self.room_for_both():
+            self.unload_edit()
         self.device = pick_device()
         pipe = load_local_first(model, on_stage)
         if self.device == "mps":
@@ -285,11 +333,36 @@ class Backend:
         self.loras_key = ()
         log.info("Model ready on %s in %.1f s.", self.device, time.monotonic() - start)
 
-    def apply_loras(self, p):
-        """Put the picture's LoRAs on the transformer (or take them off), only if they changed."""
+    def ensure_edit_loaded(self, model, on_stage):
+        if model == self.edit_key:
+            return
+        log.info("Loading %s from the local Hugging Face cache (offline)…", model)
+        start = time.monotonic()
+        on_stage("load", 0)
+        self.unload_edit()
+        if self.pipe is not None and not self.room_for_both():
+            self.unload()
+        self.device = self.device or pick_device()
+        pipe = load_edit_pipeline(model).to(self.device)
+        if hasattr(pipe.vae, "enable_tiling"):
+            pipe.vae.enable_tiling()
+        self.edit, self.edit_key, self.edit_loras_key = pipe, model, ()
+        log.info("Editing model ready on %s in %.1f s.", self.device, time.monotonic() - start)
+
+    def unload_edit(self):
+        self.edit = self.edit_key = None
+        self.edit_loras_key = ()
+        import gc
+        gc.collect()
+        if self.device:
+            self._empty_cache()
+
+    def apply_loras(self, p, transformer=None, key_name="loras_key"):
+        """Put the picture's LoRAs on a transformer (the generation model's unless given), or take them off, only
+        if they changed."""
         chosen = R.entries(p.loras)
         key = tuple((e.get("sha256"), float(e.get("strength", 1.0))) for e in chosen)
-        if key == self.loras_key:
+        if key == getattr(self, key_name):
             return
         loaded = []
         for e in chosen:
@@ -297,10 +370,11 @@ class Backend:
             if info is None:
                 raise ValueError(f"The LoRA “{e.get('name')}” isn't in your LoRAs any more.")
             if info["path"] not in self.lora_weights:
-                self.lora_weights[info["path"]] = R.load_weights(info["path"], info.get("alpha"))
+                self.lora_weights[info["path"]] = R.load_weights(info["path"], info.get("alpha"),
+                                                                 info.get("family", "moss"))
             loaded.append((self.lora_weights[info["path"]], float(e.get("strength", 1.0))))
-        R.attach(self.pipe.transformer, loaded)
-        self.loras_key = key
+        R.attach(transformer if transformer is not None else self.pipe.transformer, loaded)
+        setattr(self, key_name, key)
         log.info("LoRAs: %s", ", ".join(f"{e.get('name')} × {e.get('strength')}" for e in chosen) or "none")
 
     def unload(self):
@@ -361,7 +435,7 @@ class Backend:
 
     def downloaded(self, what):
         if what == "model":
-            self.key = None              # reload from the cache at the next generation
+            self.key = self.edit_key = None      # reload from the cache at the next generation
 
     def describe(self, model, path, thinking, on_stage, on_token, cancelled, request=None):
         """Captions {'short', 'medium', 'long'} of an image, or of `request` expanded (Enhance Prompt), from the
@@ -403,7 +477,7 @@ class Backend:
     def image_latents(self, p, source, noise_device, keep=None):
         """x_σ₀ = (1 − σ₀)·z₀ + σ₀·ε at the first kept step, σ₀ read from the same schedule the run will use.
         z₀ and ε are stored in `keep` (a dict) for inpainting."""
-        probe = make_scheduler(p.sampler, self.native_scheduler, p.shift)
+        probe = make_scheduler(p.sampler, self.native_scheduler, p.shift, sigmas=R.schedule(p.sigmas) if p.sigmas else None)
         probe.set_timesteps(p.steps, device=self.device)
         sigma = float(probe.sigmas[I.start_index(probe.sigmas, p.init_strength)])
         z0 = I.encode(self.pipe.vae, source).to(self.device)
@@ -421,20 +495,78 @@ class Backend:
             self.decoders[name] = LinearPreview(app_home() / "preview" / f"{name}.npz")
         return self.decoders[name]
 
+    def generate_edit(self, p, on_stage, on_step, cancelled, on_preview=None):
+        """Edit a picture as p's prompt instructs (Qwen-Image-Edit), with any extra pictures; returns
+        (PIL.Image, app-metadata dict). Live previews decode x̂₀ at half size, within EDIT_PREVIEW_SHARE of the
+        time."""
+        import torch
+
+        self.ensure_edit_loaded(p.model, on_stage)
+        P.validate(p)
+        R.check_entries(p.loras, M.family_of(p.model))
+        self.apply_loras(p, self.edit.transformer, "edit_loras_key")
+        images = [edit_source(path) for path in [p.init_image, *P.references(p)]]
+
+        def step_end(pipe, i, t, tensors):
+            on_step(i + 1, p.steps)
+            if cancelled():
+                raise Cancelled
+            if i + 1 == p.steps:
+                on_stage("decode", 0)
+            return {}
+
+        state = {"denoise": None, "spent": 0.0, "step": 0}
+
+        def on_step_output(x0, _latent):
+            state["step"] += 1
+            now = time.monotonic()
+            state["denoise"] = state["denoise"] or now
+            if on_preview is None or state["step"] >= p.steps:
+                return
+            if state["spent"] > EDIT_PREVIEW_SHARE * (now - state["denoise"]):
+                return
+            try:
+                on_preview(edit_preview(self.edit, x0, p.height, p.width), True)
+            except Exception:              # a preview must never cost the edit
+                log.exception("Edit preview failed; no more previews for this edit.")
+                state["spent"] = float("inf")
+            state["spent"] += time.monotonic() - now
+
+        noise_device = p.noise_device if p.noise_device in ("cpu", self.device) else "cpu"
+        start = time.monotonic()
+        watch_steps(self.edit.scheduler, on_step_output)
+        try:
+            on_stage("encode", 0)
+            if cancelled():
+                raise Cancelled
+            on_stage("denoise", p.steps)
+            image = self.edit(image=images, **P.edit_kwargs(p),
+                              generator=torch.Generator(noise_device).manual_seed(p.seed),
+                              callback_on_step_end=step_end).images[0]
+        finally:
+            self.edit.scheduler.__dict__.pop("step", None)       # take the watcher off again
+            self._empty_cache()
+        return image, dict(elapsed_seconds=round(time.monotonic() - start, 2), device=self.device,
+                           versions=library_versions())
+
     def generate(self, p, on_stage, on_step, cancelled, on_preview=None):
         """Run one image; returns (PIL.Image, app-metadata dict). on_preview receives (H, W, 3) uint8."""
         import numpy as np
         import torch
         from PIL import Image
 
+        if P.is_edit(p):
+            return self.generate_edit(p, on_stage, on_step, cancelled, on_preview)
+
         self.ensure_loaded(p.model, p.compile_transformer, on_stage)
         P.validate(p, self.num_layers())
-        R.check_entries(p.loras)
+        R.check_entries(p.loras, M.family_of(p.model))
         self.apply_loras(p)
         inpaint = {}                     # z0, eps, cells (torch) and the pixel mask, when a mask is given
 
         def fresh_scheduler():
-            scheduler = make_scheduler(p.sampler, self.native_scheduler, p.shift, p.sde_eta, p.seed)
+            scheduler = make_scheduler(p.sampler, self.native_scheduler, p.shift, p.sde_eta, p.seed,
+                                       R.schedule(p.sigmas) if p.sigmas else None)
             if p.init_image:
                 I.truncate_schedule(scheduler, p.init_strength)
             if inpaint:

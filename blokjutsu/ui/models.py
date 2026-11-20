@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 
 from .. import lora as R
 from .. import models as M
-from ..params import MODELS
+from ..params import EDIT_MODELS, MODELS
 from .loras import HubImport, grow, indented, model_config, note_label
 from .theme import medium
 from .widgets import labelled
@@ -33,10 +33,7 @@ def describe_model(found_tensors, card="", card_data=None, name="", source=None)
 
 
 def settings_text(info):
-    rec = info.get("recommended") or {}
-    bits = ([f"{rec['steps']} steps"] if "steps" in rec else []) + \
-        ([f"adherence {rec['cfg']:g}"] if "cfg" in rec else [])
-    return ", ".join(bits) or "the usual ones"
+    return R.settings_text(info.get("recommended")) or "the usual ones"
 
 
 class ModelHubImport(HubImport):
@@ -137,8 +134,9 @@ class ModelChooser(QDialog):
     """Which model the picture uses: a list of the models on this Mac with one ticked. Ticking another switches
     at once. Manage Model Library… adds and deletes models."""
 
-    def __init__(self, choose, current, cached, manage, parent=None):
+    def __init__(self, choose, current, cached, manage, parent=None, family="moss"):
         super().__init__(parent)
+        self.family = family
         self.setWindowTitle("Choose model")
         self.choose, self.current, self.cached, self.manage = choose, current, cached, manage
         self.list = QListWidget()
@@ -164,8 +162,10 @@ class ModelChooser(QDialog):
         self.values = []
         self.list.blockSignals(True)
         self.list.clear()
-        entries = [(M.display_name(r), r, self.cached(r)) for r in MODELS.values()]
-        entries += [(i.get("name", ""), M.PREFIX + i["id"], True) for i in M.library()]
+        originals = EDIT_MODELS if self.family == "qwen-image" else MODELS
+        entries = [(M.display_name(r), r, self.cached(r)) for r in originals.values()]
+        entries += [(i.get("name", ""), M.PREFIX + i["id"], True) for i in M.library()
+                    if i.get("family", "moss") == self.family]
         for name, value, here in entries:
             item = QListWidgetItem(name if here else f"{name}  (not downloaded)")
             item.setFlags((item.flags() | Qt.ItemIsUserCheckable) if here else Qt.NoItemFlags)
@@ -184,7 +184,7 @@ class ModelChooser(QDialog):
     def _manage(self):
         self.manage()
         if M.is_library(self.current) and M.find(M.library_id(self.current)) is None:
-            self.current = MODELS["MOSS-Image-SFT"]
+            self.current = next(iter((EDIT_MODELS if self.family == "qwen-image" else MODELS).values()))
             self.choose(self.current)
         self._reload()
 
@@ -214,13 +214,16 @@ class ModelLibrary(QDialog):
 
         self.name = QLineEdit()
         self.name.editingFinished.connect(self._rename)
-        self.source, self.base, self.settings, self.license, self.size = (note_label() for _ in range(5))
+        self.settings = QLineEdit(placeholderText="the usual ones")
+        self.settings.editingFinished.connect(self._save_settings)
+        self.source, self.base, self.license, self.size = (note_label() for _ in range(4))
         self.again = QPushButton("Download again…")
-        self.again.setToolTip("Download this original MOSS-Image model again")
+        self.again.setToolTip("Download this original model again")
         self.again.clicked.connect(self._download_again)
         form = grow(QFormLayout())
         form.addRow(labelled("Name", "model_name"), self.name)
-        for key, label in (("From", self.source), ("Trained on", self.base), ("Settings", self.settings),
+        form.addRow(labelled("Settings", "model_settings"), self.settings)
+        for key, label in (("From", self.source), ("Trained on", self.base),
                            ("License", self.license), ("Size", self.size)):
             form.addRow(medium(QLabel(key)), label)
         form.addRow("", self.again)
@@ -259,7 +262,8 @@ class ModelLibrary(QDialog):
 
     def _reload(self, select=None):
         originals = [{"id": repo, "name": M.display_name(repo), "original": True, "here": self.cached(repo),
-                      "source": {"repo": repo}, "license": "apache-2.0"} for repo in MODELS.values()]
+                      "source": {"repo": repo}, "license": "apache-2.0", "family": M.family_of(repo)}
+                     for repo in [*MODELS.values(), *EDIT_MODELS.values()]]
         mine = [{**info, "original": False, "here": True} for info in M.library()]
         self.items = originals + mine
         self.list.blockSignals(True)
@@ -300,10 +304,12 @@ class ModelLibrary(QDialog):
         self.source.setText(f'<a href="https://huggingface.co/{source["repo"]}">{source["repo"]}</a>'
                             if source.get("repo") else source.get("file", "a file"))
         self.base.setText("—" if info["original"] else info.get("trained_on") or "not stated")
-        self.settings.setText("the usual ones" if info["original"] else settings_text(info))
+        self.settings.setText("" if info["original"] else R.settings_text(info.get("recommended")))
+        self.settings.setReadOnly(info["original"])
         self.license.setText(info.get("license") or "not stated")
         self.size.setText(f"{M.folder_bytes(info['path']) / 1e9:.1f} GB" if not info["original"] else
-                          "about 30 GB" if info["here"] else "not downloaded")
+                          f"about {M.ORIGINAL_SIZES[info['family']] / 1e9:.0f} GB" if info["here"] else
+                          "not downloaded")
         self.form.setRowVisible(self.again, info["original"] and not info["here"])
 
     def _rename(self):
@@ -311,6 +317,19 @@ class ModelLibrary(QDialog):
         name = self.name.text().strip()
         if info and not info["original"] and name and name != info["name"]:
             M.update(info["id"], name=name)
+            self._reload(info["id"])
+
+    def _save_settings(self):
+        """Read settings typed as on a model card ('8 steps, adherence 1'); text that names none is put back."""
+        info = self._current()
+        if info is None or info["original"]:
+            return
+        rec = R.settings(self.settings.text())
+        if self.settings.text().strip() and not rec:
+            self.settings.setText(R.settings_text(info.get("recommended")))
+            return
+        if rec != (info.get("recommended") or {}):
+            M.update(info["id"], recommended=rec)
             self._reload(info["id"])
 
     def _from_hub(self):
@@ -335,10 +354,10 @@ class ModelLibrary(QDialog):
         if not chosen:
             return
         originals = [i for i in chosen if i["original"]]
-        freed = sum(30e9 if i["original"] else M.folder_bytes(i["path"]) for i in chosen)
+        freed = sum(M.ORIGINAL_SIZES[i["family"]] if i["original"] else M.folder_bytes(i["path"]) for i in chosen)
         detail = [f"This frees about {freed / 1e9:.0f} GB."]
         if originals:
-            detail.append("Downloading an original again takes about 30 GB and a while.")
+            detail.append("Downloading an original again takes as much again, and a while.")
             left = [repo for repo in MODELS.values() if self.cached(repo) and repo not in {i["id"] for i in originals}]
             if not left and M.library():
                 detail.append("Your other models use an original's text encoder and image decoder, so they "

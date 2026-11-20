@@ -64,9 +64,26 @@ def add_sde_noise(scheduler, eta, seed):
     return scheduler
 
 
-def make_scheduler(name, native, shift, eta=0.0, seed=0):
+def fixed_sigmas(scheduler, sigmas):
+    """Make a flow-matching Euler scheduler use exactly these σ (already shifted; a terminal 0 is added), whatever
+    step count it is asked for, as distilled LoRAs specify."""
+    import types
+
+    from diffusers import FlowMatchEulerDiscreteScheduler
+
+    def set_timesteps(self, num_inference_steps=None, device=None, **kwargs):
+        self._shift = 1.0                       # the values are final: no second shift
+        FlowMatchEulerDiscreteScheduler.set_timesteps(self, device=device, sigmas=list(sigmas))
+
+    scheduler.set_timesteps = types.MethodType(set_timesteps, scheduler)
+    return scheduler
+
+
+def make_scheduler(name, native, shift, eta=0.0, seed=0, sigmas=None):
     try:
         scheduler = SAMPLERS[name](native, shift)
     except KeyError:
         raise ValueError(f"Unknown sampler {name!r}; choose one of {', '.join(SAMPLERS)}.") from None
+    if sigmas:
+        fixed_sigmas(scheduler, sigmas)
     return add_sde_noise(scheduler, eta, seed) if name == "Euler SDE" else scheduler

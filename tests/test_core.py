@@ -128,7 +128,7 @@ def test_store_delete_only_image_folders(tmp_path):
 
 def test_defaults():
     d = P.Params()
-    assert (d.width, d.height, d.steps, d.cfg) == (512, 768, 20, 4.0)
+    assert (d.width, d.height, d.steps, d.cfg) == (512, 768, 30, 4.0)
 
 
 def test_size_presets():

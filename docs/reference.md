@@ -39,18 +39,22 @@ same picture again, and loading a picture's settings unticks Random.
 
 ## Steps
 
-How many refinement passes. More steps give cleaner detail and take longer. 20 is a good default and 30 is
-usually all you need; MOSS-Image's authors recommend 50. See the [steps examples](examples.md#samplers-and-steps).
+How many refinement passes. More steps give cleaner detail and take longer. 30, the default, is usually all you
+need; 20 is faster and often enough; MOSS-Image's authors recommend 50. See the [steps examples](examples.md#samplers-and-steps).
 
 ## Adherence
 
 How literally the picture follows the prompt (often called CFG). 4 is the sweet spot, and anything from 3 to 6
 gives much the same picture; much lower or higher values add artifacts. At 1, guidance is off: each step takes
-half the time, but the prompt is barely followed. See the [adherence examples](examples.md#adherence).
+half the time, but the prompt is barely followed, and the negative prompt isn't used (its box is greyed out).
+Adherence starts at 1: values below it pull the picture away from the prompt, toward unprompted abstraction, at
+full cost. See the [adherence examples](examples.md#adherence).
 
 ## Start from image
 
-Switch on to start from a picture instead of from scratch. See [Working from a picture](from-a-picture.md).
+Switch on to start from a picture instead of from scratch. **How** chooses between **Repaint**, where MOSS-Image
+redraws the picture from the prompt ([Working from a picture](from-a-picture.md)), and **Edit**, where an editing
+model changes it as the prompt instructs, optionally with up to two more pictures ([Editing pictures](editing.md)).
 
 ## Variations
 
@@ -61,11 +65,13 @@ Switch on to make close variations of a picture. See [Variations](variations.md)
 The model that makes the picture, with a line about it. **Change…** lists the models on this Mac under
 **Local models**: **SFT**, the polished model and the default; **Base**, the raw one people train their own
 versions from; and [your own models](models.md), with **Manage Model Library…**. If a model's page recommends
-settings, a button applies them.
+settings, a button applies them. While Edit is chosen under Start from image, the row shows the editing model
+instead, and **Change…** lists editing models.
 
 ## LoRAs
 
-Switch on to use LoRAs, each with a strength; **Choose LoRAs…** ticks which. See [LoRAs](loras.md).
+Switch on to use LoRAs, each with a strength; **Choose LoRAs…** ticks which. A LoRA whose page gives settings
+offers **Use its settings**. See [LoRAs](loras.md).
 
 ## Advanced options
 
@@ -83,6 +89,7 @@ picture or LoRAs for when you switch it back on, it says which.
 | Shift | balances effort between overall layout (higher) and fine detail (lower); default 5 |
 | Uncond skip, SLG layers, SLG scale, Skip interval | MOSS-Image's built-in quality boosts; defaults are best |
 | Max tokens | the longest prompt the model reads; longer prompts are cut |
+| Schedule | a fixed list of noise levels, one per step, that some fast LoRAs need; empty uses the sampler's own. Steps follows it while it is set ([fast LoRAs](loras.md#fast-loras-and-their-settings)) |
 | Size step | how much the W and H arrows change the size |
 | Think first | Describe image and Enhance prompt plan before writing: slower, more accurate. Off each time Blokjutsu starts |
 | Settings in PNG | also writes the prompt and settings inside each new PNG file; off by default, and asks you to confirm when turned on ([more](local.md#whats-inside-a-picture-file)) |

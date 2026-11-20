@@ -1,10 +1,11 @@
-"""LoRAs: reading and checking .safetensors adapters, finding trigger words, the LoRA library, and attaching
-LoRAs to the MOSS-Image transformer.
+"""LoRAs: reading and checking .safetensors adapters, finding trigger words and recommended settings, the LoRA
+library, and attaching LoRAs to a transformer.
 
 A LoRA adds, to some of the transformer's linear layers, a low-rank change ΔW = (α/r)·B·A, scaled by a
-strength. The file names each layer; the check here requires every named layer to exist in MOSS-Image with
-matching dimensions, so adapters made for other models are refused. MOSS-Image-Base and -SFT share their
-structure, so a LoRA trained on either works with both.
+strength. The file names each layer; the check here requires every named layer to exist, with matching
+dimensions, in one of the model families Blokjutsu runs (FAMILIES), so adapters made for other models are
+refused and each LoRA is filed under its family. MOSS-Image-Base and -SFT share their structure, so a LoRA
+trained on either works with both.
 
 Layers are wrapped, not changed: y = W·x + Σ sᵢ·(α/r)ᵢ·Bᵢ·(Aᵢ·x). Turning a LoRA off or changing its strength is
 exact and needs no reload. Names follow Diffusers/PEFT (lora_A, lora_B) or kohya/ComfyUI (lora_down, lora_up,
@@ -27,6 +28,8 @@ PREFIXES = ("base_model.model.", "model.diffusion_model.", "diffusion_model.", "
 PARTS = {"lora_A": "A", "lora_B": "B", "lora_down": "A", "lora_up": "B", "lora.down": "A", "lora.up": "B"}
 DEFAULT_CONFIG = dict(dim=3072, ffn_dim=8192, num_heads=24, num_layers=42, text_dim=4096, freq_dim=256,
                       latent_channels=128)
+QWEN_CONFIG = dict(patch_size=2, in_channels=64, out_channels=16, num_layers=60, attention_head_dim=128,
+                   num_attention_heads=24, joint_attention_dim=3584)
 MAX_STRENGTH = 2.0
 INFO = "info.json"
 FILE = "lora.safetensors"
@@ -96,6 +99,26 @@ def linear_shapes(config=None):
     return shapes
 
 
+def qwen_linear_shapes(config=None):
+    """{layer name: (out, in)} for every linear layer of the Qwen-Image (and -Edit) transformer, as in Diffusers'
+    QwenImageTransformer2DModel: per block, image and text modulation, joint attention, and two MLPs."""
+    c = {**QWEN_CONFIG, **(config or {})}
+    d = c["num_attention_heads"] * c["attention_head_dim"]
+    f = 4 * d
+    shapes = {"img_in": (d, c["in_channels"]), "txt_in": (d, c["joint_attention_dim"]),
+              "time_text_embed.timestep_embedder.linear_1": (d, 256),
+              "time_text_embed.timestep_embedder.linear_2": (d, d), "norm_out.linear": (2 * d, d),
+              "proj_out": (c["patch_size"] ** 2 * c["out_channels"], d)}
+    for i in range(c["num_layers"]):
+        b = f"transformer_blocks.{i}."
+        shapes |= {b + "img_mod.1": (6 * d, d), b + "txt_mod.1": (6 * d, d), b + "attn.to_out.0": (d, d)}
+        shapes |= {b + f"attn.{n}": (d, d) for n in ("to_q", "to_k", "to_v", "add_q_proj", "add_k_proj",
+                                                     "add_v_proj", "to_add_out")}
+        shapes |= {b + "img_mlp.net.0.proj": (f, d), b + "img_mlp.net.2": (d, f),
+                   b + "txt_mlp.net.0.proj": (f, d), b + "txt_mlp.net.2": (d, f)}
+    return shapes
+
+
 def fused_layers(config=None):
     """Layers some trainers fuse into one: {fused name: [the model's layers, in order]}. Their B matrix is the
     model layers' B matrices stacked, with one shared A."""
@@ -103,11 +126,20 @@ def fused_layers(config=None):
     return {f"layers.{i}.proj.qkv": [f"layers.{i}.proj.{n}" for n in "qkv"] for i in range(c["num_layers"])}
 
 
-def layers(tensors, config=None):
-    """Check a LoRA's tensors against MOSS-Image. Returns {file layer: {'A': name, 'B': name, 'alpha': name?,
-    'targets': [model layers]}} and the ranks used; raises ValueError, in words for the user, if it doesn't fit."""
-    known = linear_shapes(config)
-    targets = {name: [name] for name in known} | fused_layers(config)
+FAMILIES = {
+    "moss": {"name": "MOSS-Image", "shapes": linear_shapes, "fused": fused_layers},
+    "qwen-image": {"name": "Qwen-Image-Edit", "shapes": qwen_linear_shapes, "fused": lambda config=None: {}},
+}
+
+
+def layers(tensors, config=None, family="moss"):
+    """Check a LoRA's tensors against one model family. Returns {file layer: {'A': name, 'B': name,
+    'alpha': name?, 'targets': [model layers]}} and the ranks used; raises ValueError, in words for the user, if
+    it doesn't fit."""
+    fam = FAMILIES[family]
+    model = fam["name"]
+    known = fam["shapes"](config)
+    targets = {name: [name] for name in known} | fam["fused"](config)
     underscored = {name.replace(".", "_"): name for name in targets}
     found, other, unknown = {}, [], set()
     for name in tensors:
@@ -122,7 +154,7 @@ def layers(tensors, config=None):
         found.setdefault(layer, {"targets": targets[layer]})[part] = name
     if unknown:
         names = ", ".join(sorted(unknown)[:3]) + (", …" if len(unknown) > 3 else "")
-        raise ValueError(f"This LoRA was made for a different model: it changes layers MOSS-Image doesn't have "
+        raise ValueError(f"This LoRA was made for a different model: it changes layers {model} doesn't have "
                          f"({names}).")
     if not found:
         raise ValueError("This file has no LoRA layers in it." if not other else
@@ -144,7 +176,7 @@ def layers(tensors, config=None):
             parts["kind"] = "lokr"
             if (m * n, p * q) != (out, inp):
                 raise ValueError("This LoRA was made for a different model: its layer sizes don't match "
-                                 f"MOSS-Image's ({layer}).")
+                                 f"{model}'s ({layer}).")
             continue
         if "A" not in parts or "B" not in parts:
             names = [n for n in tensors if layer in _strip(n) or layer.replace(".", "_") in n][:4]
@@ -153,12 +185,42 @@ def layers(tensors, config=None):
         a, b = _shape(tensors[parts["A"]]), _shape(tensors[parts["B"]])
         if len(a) != 2 or len(b) != 2 or a[1] != inp or b[0] != out or a[0] != b[1]:
             raise ValueError("This LoRA was made for a different model: its layer sizes don't match "
-                             f"MOSS-Image's ({layer}).")
+                             f"{model}'s ({layer}).")
         parts["kind"] = "lora"
         ranks.add(a[0])
     if not found:
         raise ValueError("This file has no LoRA layers in it.")
     return found, sorted(ranks)
+
+
+def _matched(tensors, family, config=None):
+    """How many of the file's LoRA layers name a layer of the family's transformer."""
+    fam = FAMILIES[family]
+    targets = set(fam["shapes"](config)) | set(fam["fused"](config))
+    underscored = {name.replace(".", "_") for name in targets}
+    modules = {split_name(n)[0] for n in tensors} - {None}
+    return sum(m in targets or m in underscored for m in modules)
+
+
+def detect(tensors, configs=None):
+    """(family, layers, ranks) for the first family the LoRA fits. If it fits none, raises the error of the family
+    whose layer names it matches best, which says what is wrong; names matching no family raise a plain refusal."""
+    configs = configs or {}
+    errors = {}
+    for family in FAMILIES:
+        try:
+            return (family, *layers(tensors, configs.get(family), family))
+        except ValueError as exc:
+            errors[family] = exc
+    best = max(FAMILIES, key=lambda f: _matched(tensors, f, configs.get(f)))
+    if _matched(tensors, best, configs.get(best)) == 0 and "different model" in str(errors[best]):
+        names = " or ".join(f["name"] for f in FAMILIES.values())
+        raise ValueError(f"This LoRA was made for a different model: its layers aren't those of {names}.")
+    raise errors[best]
+
+
+def family_name(family):
+    return FAMILIES.get(family or "moss", FAMILIES["moss"])["name"]
 
 
 def _factor(tensors, parts, w, layer):
@@ -248,6 +310,69 @@ def trained_on(card_data=None):
     return base or ""
 
 
+STEPS = re.compile(r"(\d{1,3})\s*(?:inference\s+|sampling\s+|denoising\s+)?steps|"
+                   r"(?:num_inference_|inference\s+)?steps\s*[:=|]\s*(\d{1,3})\b", re.I)
+CFG = re.compile(r"(?:cfg|guidance(?:[\s_]+scale)?|adherence)\s*(?:scale)?\s*(?:of|[:=|]|is)?\s*(\d{1,2}(?:\.\d+)?)",
+                 re.I)
+NUMBER = r"(?:[01](?:\.\d+)?|\.\d+)"
+SIGMAS = re.compile(rf"(?:sigmas?|schedule)\b[^\n\d]{{0,40}}?({NUMBER}(?:\s*,\s*{NUMBER}){{2,}})", re.I)
+NEAR = re.compile(r"recommend|suggest|default|use|best|settings?", re.I)
+
+
+def schedule(text):
+    """A σ schedule from text such as '1.0, 0.910, 0.717, 0.024' (a closing 0 is dropped): strictly
+    decreasing values in (0, 1]; None if it isn't one."""
+    try:
+        values = [float(v) for v in re.split(r"[\s,]+", text.strip()) if v]
+    except ValueError:
+        return None
+    if values and values[-1] == 0:
+        values = values[:-1]
+    ok = len(values) >= 1 and all(0 < v <= 1 for v in values) and all(a > b for a, b in zip(values, values[1:]))
+    return values if ok else None
+
+
+def settings(text, anywhere=True):
+    """{'steps': n, 'cfg': x, 'sigmas': [...]} named in text, as for distilled ("turbo") models and LoRAs; may be
+    empty. With anywhere=False (a model card) only values near words like "recommended" count."""
+    found = {}
+    near = [m.start() for m in NEAR.finditer(text or "")]
+
+    def counts(m):
+        return anywhere or any(0 <= m.start() - n < 200 for n in near)
+
+    for key, pattern, kind in (("steps", STEPS, int), ("cfg", CFG, float)):
+        for m in pattern.finditer(text or ""):
+            if counts(m):
+                value = kind(next(g for g in m.groups() if g))
+                if (key == "steps" and 1 <= value <= 200) or (key == "cfg" and 1 <= value <= 20):
+                    found[key] = value
+                    break
+    for m in SIGMAS.finditer(text or ""):
+        sigmas = schedule(m.group(1))
+        if sigmas and counts(m):
+            found["sigmas"] = sigmas
+            found["steps"] = len(sigmas)
+            break
+    return found
+
+
+def recommended(card_text):
+    """The settings a model card recommends; may be empty."""
+    return settings(card_text, anywhere=False)
+
+
+def settings_text(rec):
+    """'4 steps, adherence 1, schedule 1, 0.91, 0.717, 0.024'; '' for none."""
+    rec = rec or {}
+    bits = [f"{rec['steps']} steps"] if "steps" in rec else []
+    if "cfg" in rec:
+        bits.append(f"adherence {rec['cfg']:g}")
+    if rec.get("sigmas"):
+        bits.append("schedule " + ", ".join(f"{s:g}" for s in rec["sigmas"]))
+    return ", ".join(bits)
+
+
 def repo_of(text):
     """'owner/name' from a Hugging Face link or id, or None."""
     text = text.strip()
@@ -325,7 +450,8 @@ def add(source_file, info, move=False):
     stored = {"name": info.get("name") or Path(source_file).stem, "trigger": info.get("trigger", ""),
               "strength": info.get("strength", 1.0), "trained_on": info.get("trained_on", ""),
               "license": info.get("license", ""), "source": info.get("source", {}), "alpha": info.get("alpha"),
-              "ranks": info.get("ranks", []), "sha256": digest, "added": round(time.time())}
+              "ranks": info.get("ranks", []), "family": info.get("family", "moss"),
+              "recommended": info.get("recommended", {}), "sha256": digest, "added": round(time.time())}
     (folder / INFO).write_text(json.dumps(stored, indent=2, ensure_ascii=False) + "\n")
     return {**stored, "id": folder.name, "path": str(folder / FILE)}
 
@@ -366,20 +492,25 @@ def locate(e):
     return find(digest=e.get("sha256")) or find(lora_id=e.get("id"))
 
 
-def check_entries(text):
-    """Raise ValueError if a picture's LoRAs can't be used: strength out of range, or not in the library."""
+def check_entries(text, family="moss"):
+    """Raise ValueError if a picture's LoRAs can't be used: strength out of range, not in the library, or made
+    for another model family."""
     for e in entries(text):
         s = e.get("strength", 1.0)
         if not (isinstance(s, (int, float)) and -MAX_STRENGTH <= s <= MAX_STRENGTH):
             raise ValueError(f"The strength of LoRA {e.get('name')} must be between −2 and 2.")
-        if locate(e) is None:
+        info = locate(e)
+        if info is None:
             raise ValueError(f"The LoRA “{e.get('name')}” isn't in your LoRAs any more. Add it again "
-                             "(LoRAs → Add LoRA…), or turn it off.")
+                             "(Manage LoRA Library…), or turn it off.")
+        if info.get("family", "moss") != family:
+            raise ValueError(f"The LoRA “{e.get('name')}” is for {family_name(info.get('family'))}, not "
+                             f"{family_name(family)}. Turn it off to use this model.")
 
 
 # attaching to the transformer (torch)
 
-def load_weights(path, adapter_config=None):
+def load_weights(path, adapter_config=None, family="moss", config=None):
     """{model layer: [terms]} from a LoRA file (CPU tensors). A term is ("lora", A, B, α/r, None) or, for LoKr,
     ("kron", W1, W2, scale, (first, last)), whose change is the rows first:last of W1 ⊗ W2 (all of them unless the
     file's layer is several fused model layers)."""
@@ -387,8 +518,8 @@ def load_weights(path, adapter_config=None):
 
     tensors = load_file(path)
     shapes = {k: (str(v.dtype), tuple(v.shape)) for k, v in tensors.items()}
-    found, _ = layers(shapes)
-    known = linear_shapes()
+    found, _ = layers(shapes, config, family)
+    known = FAMILIES[family]["shapes"](config)
     default_alpha = alpha_from(adapter_config)
 
     def alpha_of(parts):

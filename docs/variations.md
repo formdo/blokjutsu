@@ -17,7 +17,8 @@ Click **Generate similar image** under it. Blokjutsu loads its settings, switche
 
 - **Strength**: how different each variation is ([examples below](#what-strength-does)). 0.05 is a subtle nudge, 0.2 (the default) a clear variation,
   0.5 and above a loose relative.
-- **Variation seed**: 0 means new variations every time; a number repeats the same ones.
+- **Variation seed**: with **Random** ticked, new variations every time; untick it to keep a number and repeat the
+  same ones.
 
 ## What Strength does
 

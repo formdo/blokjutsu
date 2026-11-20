@@ -306,3 +306,12 @@ download, from the file's header alone. Diffusers/PEFT (`lora_A`, `lora_B`), koh
 fused as `layers.N.proj.qkv` is mapped onto `q`, `k` and `v`. Layers are wrapped, not modified: a low-rank change is
 `s·(α/r)·B·A·x`, and a LoKr change `(W1 ⊗ W2)·x` is computed as `W1·X·W2ᵀ` with `x` reshaped to `X`, so the full
 matrix is never built. LoHa and LoKr with a Tucker core are refused.
+
+Each LoRA is filed under the model family it fits (`lora.FAMILIES`: MOSS-Image, and Qwen-Image-Edit, whose layer
+names and shapes follow Diffusers' `QwenImageTransformer2DModel`); `lora.detect` tries each family, and a picture's
+LoRAs must match its model's family (`models.family_of`).
+
+Recommended settings (steps, adherence, and a fixed σ schedule) are read from a model's or LoRA's card near words
+such as "recommended", or typed in its library entry. A fixed schedule (`Params.sigmas`, Advanced options →
+Schedule) replaces the sampler's: the values are taken as final, with no shift (`samplers.fixed_sigmas`), one per
+step, Euler or Euler SDE only, as distilled LoRAs such as lvladikov's MOSS 4-step LoRA specify.

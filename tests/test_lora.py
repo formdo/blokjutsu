@@ -148,3 +148,106 @@ def test_lokr_on_fused_qkv_and_mlp():
         R.layers({**shapes, "diffusion_model.layers.0.proj.o.lokr_w2": (192, 191)})
     with pytest.raises(ValueError):
         R.layers({"layers.0.proj.o.hada_w1_a": (8, 3072), "layers.0.proj.o.hada_w1_b": (8, 3072)})
+
+
+def qwen(rank=16, blocks=(0, 1)):
+    shapes = {}
+    for i in blocks:
+        pre = f"diffusion_model.transformer_blocks.{i}."
+        for n in ("to_q", "to_k", "to_v", "add_q_proj"):
+            shapes[pre + f"attn.{n}.lora_A.weight"] = (rank, D)
+            shapes[pre + f"attn.{n}.lora_B.weight"] = (D, rank)
+        shapes[pre + "img_mlp.net.0.proj.lora_A.weight"] = (rank, D)
+        shapes[pre + "img_mlp.net.0.proj.lora_B.weight"] = (4 * D, rank)
+        shapes[pre + "img_mod.1.lora_A.weight"] = (rank, D)
+        shapes[pre + "img_mod.1.lora_B.weight"] = (6 * D, rank)
+    return shapes
+
+
+def test_family_detection():
+    assert R.detect(peft())[0] == "moss"
+    family, found, ranks = R.detect(qwen(rank=32))
+    assert family == "qwen-image" and ranks == [32] and "transformer_blocks.1.img_mlp.net.0.proj" in found
+
+
+def test_detection_refusals():
+    with pytest.raises(ValueError, match="different model"):
+        R.detect({"double_blocks.0.img_attn.qkv.lora_A.weight": (16, D),
+                  "double_blocks.0.img_attn.qkv.lora_B.weight": (3 * D, 16)})
+    bad = qwen()
+    bad["diffusion_model.transformer_blocks.0.img_mlp.net.0.proj.lora_B.weight"] = (D, 16)
+    with pytest.raises(ValueError, match="Qwen-Image-Edit's"):
+        R.detect(bad)
+
+
+def test_family_is_stored_and_checked(tmp_path, monkeypatch):
+    monkeypatch.setenv("BLOKJUTSU_HOME", str(tmp_path / "home"))
+    src = safetensors(tmp_path / "lightning.safetensors", qwen(blocks=(0,)))
+    info = R.add(src, {"name": "Lightning", "family": "qwen-image", "recommended": {"steps": 4, "cfg": 1.0}})
+    text = R.dumps([R.entry(info)])
+    R.check_entries(text, "qwen-image")
+    with pytest.raises(ValueError, match="is for Qwen-Image-Edit, not MOSS-Image"):
+        R.check_entries(text, "moss")
+    assert R.find(info["id"])["recommended"] == {"steps": 4, "cfg": 1.0}
+
+
+@pytest.mark.parametrize("text, rec", [
+    ("Recommended: 4 steps, CFG 1. Use MOSS's own schedule with sigmas 1.0, 0.910, 0.717, 0.024.",
+     {"steps": 4, "cfg": 1.0, "sigmas": [1.0, 0.91, 0.717, 0.024]}),
+    ("Use 8 steps and guidance scale 1.0", {"steps": 8, "cfg": 1.0}),
+    ("Recommended settings\n- Steps: 4\n- Diffusers `guidance_scale=1.0`", {"steps": 4, "cfg": 1.0}),
+    ("A watercolour style.", {}),
+])
+def test_recommended_settings(text, rec):
+    assert R.recommended(text) == rec
+
+
+def test_settings_typed_and_shown():
+    rec = R.settings("4 steps, adherence 1, schedule 1, 0.91, 0.717, 0.024")
+    assert rec == {"steps": 4, "cfg": 1.0, "sigmas": [1.0, 0.91, 0.717, 0.024]}
+    assert R.settings_text(rec) == "4 steps, adherence 1, schedule 1, 0.91, 0.717, 0.024"
+    assert R.settings("") == {} and R.settings_text({}) == ""
+
+
+@pytest.mark.parametrize("text, values", [
+    ("1.0, 0.910, 0.717, 0.024", [1.0, 0.91, 0.717, 0.024]),
+    ("1, 0.5, 0", [1.0, 0.5]),
+    ("0.5, 0.7", None),
+    ("1.2, 0.5", None),
+    ("one, two", None),
+])
+def test_schedule(text, values):
+    assert R.schedule(text) == values
+
+
+def test_schedule_in_params():
+    from dataclasses import replace
+    p = P.Params(prompt="a harbour", steps=4, cfg=1.0, sigmas="1, 0.91, 0.717, 0.024")
+    P.validate(p)
+    assert P.from_record(P.to_record(p)).sigmas == p.sigmas
+    with pytest.raises(ValueError, match="Steps must be 4"):
+        P.validate(replace(p, steps=30))
+    with pytest.raises(ValueError, match="Euler"):
+        P.validate(replace(p, sampler="UniPC"))
+
+
+def test_fixed_sigmas_bypass_shift(monkeypatch):
+    """The schedule reaches the Euler scheduler unshifted, whatever step count the pipeline asks for."""
+    import sys
+    import types
+
+    from blokjutsu import samplers
+
+    class Euler:
+        calls = []
+
+        def __init__(self):
+            self._shift = 5.0
+
+        def set_timesteps(self, num_inference_steps=None, device=None, sigmas=None):
+            Euler.calls.append((self._shift, sigmas))
+
+    monkeypatch.setitem(sys.modules, "diffusers", types.SimpleNamespace(FlowMatchEulerDiscreteScheduler=Euler))
+    s = samplers.fixed_sigmas(Euler(), [1.0, 0.91, 0.717, 0.024])
+    s.set_timesteps(30, device="cpu")
+    assert Euler.calls == [(1.0, [1.0, 0.91, 0.717, 0.024])]

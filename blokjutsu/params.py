@@ -13,11 +13,17 @@ MODELS = {
     "MOSS-Image-Base": "OpenMOSS-Team/MOSS-Image-Base",
 }
 DEFAULT_MODEL = MODELS["MOSS-Image-SFT"]
+EDIT_MODELS = {
+    "Qwen-Image-Edit-2511": "Qwen/Qwen-Image-Edit-2511",
+}
+DEFAULT_EDIT_MODEL = EDIT_MODELS["Qwen-Image-Edit-2511"]
+MAX_REFERENCES = 2                  # extra pictures an edit can use, besides the one it edits
 # Tested model versions (Hugging Face commit hashes). Downloads fetch exactly these, and the app loads exactly
 # these, so an upstream change can't alter the app. The pipeline code is copied from the SFT revision into
 # moss_image.py (scripts/vendor_moss.py). None: newest.
 MODEL_REVISIONS = {
     "OpenMOSS-Team/MOSS-Image-SFT": "2c7954437269461767f533b006823e8f85973a60",
+    "Qwen/Qwen-Image-Edit-2511": "6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9",
 }
 
 
@@ -34,7 +40,7 @@ class Params:
     negative_prompt: str = ""
     width: int = 512
     height: int = 768
-    steps: int = 20
+    steps: int = 30
     cfg: float = 4.0
     seed: int = 0
     num_images: int = 1
@@ -59,10 +65,14 @@ class Params:
                                     # regenerated, black kept, gray (the feathered edge) blended
     layout: str = ""                # a layout draft (layout.py) as JSON; when set, prompt is compiled from it
     loras: str = ""                 # the LoRAs used, as JSON: [{"id", "name", "sha256", "strength", "trigger"}]
+    references: str = ""            # Edit: extra pictures (paths) as a JSON list, called picture 2, 3 in prompts
+    sigmas: str = ""                # a fixed σ schedule, "1, 0.91, 0.717, 0.024", as distilled LoRAs ask for;
+                                    # one value per step (Euler only); "" = the sampler's own schedule
 
 
 ADVANCED = ("sampler", "shift", "uncond_skip_layers", "slg_layers", "slg_scale",
-            "slg_start", "slg_stop", "max_sequence_length", "noise_device", "compile_transformer", "sde_eta")
+            "slg_start", "slg_stop", "max_sequence_length", "noise_device", "compile_transformer", "sde_eta",
+            "sigmas")
 FIELD_NAMES = tuple(f.name for f in fields(Params))
 
 
@@ -79,7 +89,53 @@ def parse_layers(text):
     return layers
 
 
+def is_edit(p):
+    """Whether p edits a picture with an instruction-following model (Edit), rather than generating (Repaint or new)."""
+    from .models import family_of
+    return family_of(p.model) == "qwen-image"
+
+
+def references(p):
+    try:
+        value = json.loads(p.references) if p.references else []
+    except ValueError:
+        return []
+    return [str(v) for v in value if isinstance(v, str) and v] if isinstance(value, list) else []
+
+
+def _validate_edit(p):
+    from pathlib import Path
+    if not p.init_image:
+        raise ValueError("Edit needs a picture to edit: choose one under Start from image.")
+    for path in [p.init_image, *references(p)]:
+        if not Path(path).is_file():
+            raise ValueError(f"Picture not found: {path}")
+    if len(references(p)) > MAX_REFERENCES:
+        raise ValueError(f"Edit can use at most {MAX_REFERENCES} extra pictures.")
+    if p.layout:
+        raise ValueError("Layouts are for new pictures and Repaint, not Edit.")
+    if p.mask_image:
+        raise ValueError("Edit changes what the instruction says; Select area to change is for Repaint.")
+    if p.variation:
+        raise ValueError("Variations are for new pictures and Repaint, not Edit.")
+    if p.sigmas:
+        raise ValueError("A fixed schedule is for MOSS-Image, not Edit; clear Schedule in Advanced options.")
+
+
 def validate(p, num_layers=None):
+    if is_edit(p):
+        if not p.prompt.strip():
+            raise ValueError("Describe the change to make.")
+        if p.width <= 0 or p.height <= 0 or p.width % 16 or p.height % 16:
+            raise ValueError("Width and height must be positive multiples of 16.")
+        if p.steps < 1 or p.num_images < 1:
+            raise ValueError("Steps and number of images must be positive.")
+        if not (math.isfinite(p.cfg) and p.cfg >= 0):
+            raise ValueError("Adherence must be finite and nonnegative.")
+        if not 0 <= p.seed <= SEED_MAX:
+            raise ValueError(f"Seed must be in [0, {SEED_MAX}]; 0 means random.")
+        _validate_edit(p)
+        return
     if p.layout:
         try:
             L.compile_prompt(L.loads(p.layout), p.width, p.height)
@@ -121,6 +177,15 @@ def validate(p, num_layers=None):
         raise ValueError("SLG scale must be finite and nonnegative.")
     if not 0 <= p.slg_start <= p.slg_stop <= 1:
         raise ValueError("Require 0 ≤ skip start ≤ skip stop ≤ 1.")
+    if p.sigmas:
+        from .lora import schedule
+        values = schedule(p.sigmas)
+        if values is None:
+            raise ValueError("The schedule must be decreasing values between 0 and 1, separated by commas.")
+        if len(values) != p.steps:
+            raise ValueError(f"The schedule has {len(values)} values, so Steps must be {len(values)}.")
+        if p.sampler not in ("Euler", "Euler SDE"):
+            raise ValueError("A fixed schedule needs the Euler or Euler SDE sampler.")
     layers = parse_layers(p.uncond_skip_layers) + parse_layers(p.slg_layers)
     if num_layers is not None and any(i >= num_layers for i in layers):
         raise ValueError(f"Layer indices must be below {num_layers}.")
@@ -186,6 +251,15 @@ def vary_from(p, strength, count):
     return replace(p, variation=strength, variation_seed=0, variation_base=base, num_images=count)
 
 
+def edit_kwargs(p):
+    """Arguments for Diffusers' QwenImageEditPlusPipeline, less the pictures and the generator. Its guidance runs
+    only with a negative prompt, so an empty one is passed as a space, as Qwen's own example does."""
+    guided = p.cfg > 1
+    return dict(prompt=p.prompt, negative_prompt=(p.negative_prompt.strip() or " ") if guided else None,
+                true_cfg_scale=p.cfg, height=p.height, width=p.width, num_inference_steps=p.steps,
+                num_images_per_prompt=1)
+
+
 def pipeline_kwargs(p):
     return dict(
         prompt=p.prompt, negative_prompt=p.negative_prompt, width=p.width, height=p.height,
@@ -220,7 +294,9 @@ def to_record(p, image_name="image.png", **extra):
                    "variation_seed": p.variation_seed, "variation_base": p.variation_base,
                    "init_image": p.init_image, "init_strength": p.init_strength, "mask_image": p.mask_image,
                    **({"layout": L.loads(p.layout)} if p.layout else {}),
-                   **({"loras": json.loads(p.loras)} if p.loras else {}), **extra},
+                   **({"loras": json.loads(p.loras)} if p.loras else {}),
+                   **({"sigmas": p.sigmas} if p.sigmas else {}),
+                   **({"references": references(p)} if p.references else {}), **extra},
     }
 
 
@@ -228,7 +304,7 @@ def _coerce(name, value):
     kind = type(getattr(Params(), name))
     if kind is str and isinstance(value, dict):
         return L.dumps(value)
-    if kind is str and isinstance(value, list) and name == "loras":
+    if kind is str and isinstance(value, list) and name in ("loras", "references"):
         return json.dumps(value, ensure_ascii=False, separators=(",", ":")) if value else ""
     if kind is str and isinstance(value, (list, tuple)):
         return ",".join(map(str, value))

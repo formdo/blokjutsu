@@ -164,13 +164,17 @@ class LoraRow(QWidget):
         self.add_button.setVisible(bool(trigger) and not self.missing and trigger not in prompt)
 
 
+def works_with(family):
+    return {"moss": "MOSS-Image-SFT and -Base"}.get(family or "moss", R.family_name(family))
+
+
 def describe_check(tensors, card="", card_data=None, metadata=None, adapter_config=None, name="", source=None):
-    """The info to store for a LoRA, after checking it fits MOSS-Image (raises ValueError if it doesn't)."""
-    _, ranks = R.layers(tensors, model_config())
+    """The info to store for a LoRA, after checking which model family it fits (raises ValueError if none)."""
+    family, _, ranks = R.detect(tensors, {"moss": model_config()})
     alpha = R.alpha_from(adapter_config)
     return {"name": name, "trigger": R.find_trigger(card, card_data, metadata), "strength": R.find_strength(card),
             "trained_on": R.trained_on(card_data), "license": (card_data or {}).get("license", ""),
-            "source": source or {}, "ranks": ranks,
+            "source": source or {}, "ranks": ranks, "family": family, "recommended": R.recommended(card),
             "alpha": {"lora_alpha": alpha[0], "r": alpha[1]} if alpha else None}
 
 
@@ -268,7 +272,8 @@ class HubImport(QDialog):
     def _build_details(self, form):
         self.name = QLineEdit()
         self.trigger = QLineEdit(placeholderText="none")
-        self.facts = {k: note_label() for k in ("File", "Trained on", "Works with", "Strength", "License")}
+        self.facts = {k: note_label() for k in ("File", "Trained on", "Works with", "Strength", "Settings",
+                                                "License")}
         form.addRow(labelled("Name", "lora_name"), self.name)
         form.addRow(labelled("Trigger", "lora_trigger"), self.trigger)
         for key, label in self.facts.items():
@@ -279,7 +284,8 @@ class HubImport(QDialog):
                  trigger=self.trigger.text().strip())
 
     def _download(self, found, folder):
-        self.status.setText(f"It fits MOSS-Image. Downloading {found['file']} ({found['size'] / 1e6:.0f} MB)…")
+        model = R.family_name(self.info.get("family")) if self.info else "MOSS-Image"
+        self.status.setText(f"It fits {model}. Downloading {found['file']} ({found['size'] / 1e6:.0f} MB)…")
         self._run("file", "lora", found["repo"], found["revision"], found["file"], folder)
 
     # the steps
@@ -364,7 +370,7 @@ class HubImport(QDialog):
 
     def _store(self, path):
         try:
-            R.layers(R.read_header(path)[0], model_config())
+            R.detect(R.read_header(path)[0], {"moss": model_config()})
             self.added = R.add(path, self.info, move=True)
         except (OSError, ValueError) as exc:
             self.status.setText(f"The downloaded file can't be used: {exc}")
@@ -394,8 +400,9 @@ class HubImport(QDialog):
         self.trigger.setText(info.get("trigger", ""))
         for key, value in (("File", f"{f['file']} ({f['size'] / 1e6:.0f} MB)"),
                            ("Trained on", info.get("trained_on") or "not stated"),
-                           ("Works with", "MOSS-Image-SFT and -Base"),
+                           ("Works with", works_with(info.get("family"))),
                            ("Strength", f"{info.get('strength', 1.0):g}"),
+                           ("Settings", R.settings_text(info.get("recommended")) or "the usual ones"),
                            ("License", info.get("license") or "not stated")):
             self.facts[key].setText(value)
         self.details.show()
@@ -416,16 +423,19 @@ class LoraChooser(QDialog):
     """Which LoRAs the picture uses: a tick list of the library. Ticking adds a LoRA to the controls at once,
     unticking removes it. Manage LoRA Library… adds and deletes LoRAs."""
 
-    def __init__(self, add, remove, in_use, parent=None):
+    def __init__(self, add, remove, in_use, parent=None, family="moss"):
         super().__init__(parent)
         self.setWindowTitle("Choose LoRAs")
-        self.add, self.remove, self.in_use = add, remove, set(in_use)
+        self.add, self.remove, self.in_use, self.family = add, remove, set(in_use), family
         self.list = QListWidget()
         self.list.itemChanged.connect(self._ticked)
         self.empty = QLabel("Your LoRA library is empty. Manage LoRA Library… adds LoRAs from Hugging Face or "
                             "from files.")
         self.empty.setWordWrap(True)
         self.empty.setForegroundRole(QPalette.PlaceholderText)
+        self.others = QLabel()
+        self.others.setWordWrap(True)
+        self.others.setForegroundRole(QPalette.PlaceholderText)
         manage = QPushButton("Manage LoRA Library…")
         manage.setAutoDefault(False)
         manage.clicked.connect(self._manage)
@@ -440,12 +450,18 @@ class LoraChooser(QDialog):
         layout.addWidget(indented(medium(QLabel("Local LoRAs"))))
         layout.addWidget(self.list, 1)
         layout.addWidget(self.empty)
+        layout.addWidget(self.others)
         layout.addLayout(bottom)
         self.resize(460, 420)
         self._reload()
 
     def _reload(self):
-        self.items = R.library()
+        everything = R.library()
+        self.items = [i for i in everything if i.get("family", "moss") == self.family]
+        hidden = len(everything) - len(self.items)
+        self.others.setText(f"{hidden} LoRA{'s are' if hidden != 1 else ' is'} for another model and "
+                            f"{'are' if hidden != 1 else 'is'} not listed here." if hidden else "")
+        self.others.setVisible(bool(hidden))
         self.list.blockSignals(True)
         self.list.clear()
         for info in self.items:
@@ -456,7 +472,7 @@ class LoraChooser(QDialog):
             item.setToolTip(f"Trigger word: {trigger}" if trigger else "No trigger word: applies to the whole picture")
             self.list.addItem(item)
         self.list.blockSignals(False)
-        self.empty.setVisible(not self.items)
+        self.empty.setVisible(not everything)
 
     def _ticked(self, item):
         info = self.items[self.list.row(item)]
@@ -517,13 +533,16 @@ class LoraLibrary(QDialog):
         self.strength = QDoubleSpinBox(decimals=2, singleStep=0.05, minimum=0, maximum=R.MAX_STRENGTH)
         self.strength.setFixedWidth(100)
         self.strength.editingFinished.connect(lambda: self._save("strength", round(self.strength.value(), 2)))
-        self.source, self.base, self.license, self.size = (note_label() for _ in range(4))
+        self.settings = QLineEdit(placeholderText="the usual ones")
+        self.settings.editingFinished.connect(self._save_settings)
+        self.source, self.base, self.works, self.license, self.size = (note_label() for _ in range(5))
         form = grow(QFormLayout())
         form.addRow(labelled("Name", "lora_name"), self.name)
         form.addRow(labelled("Trigger", "lora_trigger"), self.trigger)
         form.addRow(labelled("Strength", "lora_strength"), self.strength)
-        for key, label in (("From", self.source), ("Trained on", self.base), ("License", self.license),
-                           ("Size", self.size)):
+        form.addRow(labelled("Settings", "lora_settings"), self.settings)
+        for key, label in (("From", self.source), ("Trained on", self.base), ("Works with", self.works),
+                           ("License", self.license), ("Size", self.size)):
             form.addRow(medium(QLabel(key)), label)
         self.detail = QWidget()
         self.detail.setLayout(form)
@@ -589,7 +608,8 @@ class LoraLibrary(QDialog):
         info = self._current()
         self.detail.setEnabled(info is not None)
         if info is None:
-            for w in (self.name, self.trigger, self.source, self.base, self.license, self.size):
+            for w in (self.name, self.trigger, self.settings, self.source, self.base, self.works, self.license,
+                      self.size):
                 w.setText("")
             return
         self.name.setText(info.get("name", ""))
@@ -599,6 +619,8 @@ class LoraLibrary(QDialog):
         self.source.setText(f'<a href="https://huggingface.co/{source["repo"]}">{source["repo"]}</a>'
                             if source.get("repo") else source.get("file", "a file"))
         self.base.setText(info.get("trained_on") or "not stated")
+        self.works.setText(works_with(info.get("family")))
+        self.settings.setText(R.settings_text(info.get("recommended")))
         self.license.setText(info.get("license") or "not stated")
         self.size.setText(f"{Path(info['path']).stat().st_size / 1e6:.0f} MB")
 
@@ -607,6 +629,17 @@ class LoraLibrary(QDialog):
         if info is not None and info.get(key) != value:
             R.update(info["id"], **{key: value})
             self._reload(info["id"])
+
+    def _save_settings(self):
+        """Read settings typed as on a model card ('4 steps, adherence 1'); text that names none is put back."""
+        info = self._current()
+        if info is None:
+            return
+        rec = R.settings(self.settings.text())
+        if self.settings.text().strip() and not rec:
+            self.settings.setText(R.settings_text(info.get("recommended")))
+            return
+        self._save("recommended", rec)
 
     def _from_hub(self):
         dialog = HubImport(self)

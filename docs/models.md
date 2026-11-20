@@ -31,7 +31,8 @@ browser, showing fine-tunes of MOSS-Image.
 ## Recommended settings
 
 Some models need different settings, such as fast models that want 8 steps and an Adherence of 1. When a model's
-page recommends them, a button under **Model** offers **Use its settings**.
+page recommends them, a button under **Model** offers **Use its settings**. If the page doesn't say, type them
+as the model's **Settings** in **Manage Model Library…**, such as `8 steps, adherence 1`.
 
 ## Managing your models
 

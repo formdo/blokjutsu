@@ -312,10 +312,46 @@ def fetch_caption_head(te_dir, out_dir):
 # model
 
 def folder_bytes(folder):
+    """Bytes in the files under folder, partial downloads included. Files renamed or removed while it looks (a
+    download finishing) are skipped, never fatal: this runs in the watcher thread throughout a download."""
+    total = 0
     try:
-        return sum(p.stat().st_size for p in Path(folder).iterdir() if p.is_file())
+        paths = list(Path(folder).rglob("*"))
     except OSError:
         return 0
+    for p in paths:
+        try:
+            if p.is_file():
+                total += p.stat().st_size
+        except OSError:
+            continue
+    return total
+
+
+def finished_files(folder):
+    """How many complete files a Hugging Face cache blobs folder holds (partial ones end in .incomplete)."""
+    try:
+        return sum(1 for p in Path(folder).iterdir() if not p.name.endswith(".incomplete"))
+    except OSError:
+        return 0
+
+
+def watch_progress(measure, total, stop, every=0.5, files=None):
+    """Report a download's progress until stop is set: bytes from measure(), never going backwards, and, with
+    files=(blobs folder, count), how many files are complete, since some transfers (Xet) write a file only once it
+    has all arrived, so the bytes can stand still while files finish."""
+    report, best, shown = Throttle(every), 0, -1
+    while not stop.wait(every):
+        try:
+            best = max(best, min(measure(), total))
+            report(best, total)
+            if files is not None:
+                done = min(finished_files(files[0]), files[1])
+                if done != shown:
+                    shown = done
+                    emit("FILES", max(done, 0), files[1])
+        except Exception:          # a progress report must never stop the download
+            continue
 
 
 def fetch_model(repo):
@@ -330,13 +366,9 @@ def fetch_model(repo):
     info = HfApi().model_info(repo, revision=revision, files_metadata=True)
     total = sum(s.size or 0 for s in info.siblings)
     blobs = Path(HF_HUB_CACHE) / ("models--" + repo.replace("/", "--")) / "blobs"
-    report, stop = Throttle(0.5), threading.Event()
-
-    def watch():
-        while not stop.wait(0.5):
-            report(min(folder_bytes(blobs), total), total)
-
-    threading.Thread(target=watch, daemon=True).start()
+    stop = threading.Event()
+    threading.Thread(target=watch_progress, args=(lambda: folder_bytes(blobs), total, stop),
+                     kwargs={"files": (blobs, len(info.siblings))}, daemon=True).start()
     status(f"Downloading {repo} (files already in the cache are skipped)…")
     path = snapshot_download(repo, revision=info.sha)
     stop.set()
@@ -388,14 +420,8 @@ def fetch_lora(repo, revision, filename, out_dir):
     out.mkdir(parents=True, exist_ok=True)
     siblings = HfApi().model_info(repo, revision=revision, files_metadata=True).siblings
     total = next((s.size or 0 for s in siblings if s.rfilename == filename), 0)
-    report, stop = Throttle(0.3), threading.Event()
-
-    def watch():
-        while not stop.wait(0.3):
-            done = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
-            report(min(done, total), total)
-
-    threading.Thread(target=watch, daemon=True).start()
+    stop = threading.Event()
+    threading.Thread(target=watch_progress, args=(lambda: folder_bytes(out), total, stop, 0.3), daemon=True).start()
     status(f"Downloading {filename} from {repo}…")
     path = hf_hub_download(repo, filename, revision=revision, local_dir=str(out))
     stop.set()
@@ -469,13 +495,8 @@ def model_files(repo, revision, out_dir, *names):
     sizes = {s.rfilename: s.size or 0 for s in HfApi().model_info(repo, revision=revision,
                                                                   files_metadata=True).siblings}
     total = sum(sizes.get(n, 0) for n in names)
-    report, stop = Throttle(0.5), threading.Event()
-
-    def watch():
-        while not stop.wait(0.5):
-            report(min(sum(p.stat().st_size for p in out.rglob("*") if p.is_file()), total), total)
-
-    threading.Thread(target=watch, daemon=True).start()
+    stop = threading.Event()
+    threading.Thread(target=watch_progress, args=(lambda: folder_bytes(out), total, stop), daemon=True).start()
     for name in names:
         status(f"Downloading {name}…")
         hf_hub_download(repo, name, revision=revision, local_dir=str(out))

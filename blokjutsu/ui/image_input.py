@@ -31,6 +31,9 @@ def mask_overlay(path, alpha=0.45, size=600):
     return QImage(np.ascontiguousarray(rgba).data, w, h, 4 * w, QImage.Format_RGBA8888).copy()
 
 
+EMPTY_HEIGHT, MAX_HEIGHT = 132, 440     # the box's height when empty, and at most when showing a tall picture
+
+
 class ImageWell(QWidget):
     changed = Signal(str)          # path, or "" when cleared
     activated = Signal()           # clicked
@@ -42,7 +45,7 @@ class ImageWell(QWidget):
         self.overlay = None
         self.setAcceptDrops(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedHeight(132)
+        self.setFixedHeight(EMPTY_HEIGHT)
 
     def set_path(self, path):
         self.path = path or ""
@@ -53,8 +56,23 @@ class ImageWell(QWidget):
             reader.setScaledSize(reader.size().scaled(QSize(600, 600), Qt.KeepAspectRatio))
             image = reader.read()
             self.pixmap = QPixmap.fromImage(image) if not image.isNull() else None
+        self._fit_height()
         self.update()
         self.changed.emit(self.path)
+
+    def _fit_height(self):
+        """A picture fills the full width (lined up with the buttons below), its height following its shape."""
+        height = EMPTY_HEIGHT
+        if self.pixmap is not None and self.pixmap.width() > 0:
+            height = round(self.width() * self.pixmap.height() / self.pixmap.width())
+            height = max(EMPTY_HEIGHT // 2, min(MAX_HEIGHT, height))
+        if height != self.height():
+            self.setFixedHeight(height)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if event.size().width() != event.oldSize().width():
+            self._fit_height()
 
     def set_mask(self, path):
         """Show an inpainting mask over the image (translucent red where it may change)."""

@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+- **Edit**: change a picture as the prompt instructs ("make it night", "replace the dog with a cat"), with Qwen's
+  editing model, Qwen-Image-Edit-2511, optionally using up to two more pictures ("the hat from picture 2").
+  Start from image → How: **Repaint** or **Edit**; cards have **Edit this picture**. Repaint and Edit each keep
+  their own steps, adherence and LoRAs. With about 128 GB of memory or more, the generation and editing models
+  stay loaded together
+- User's Guide: an Editing pictures page
+- Removing the last LoRA no longer switches the LoRAs section off
+- Edits show the picture taking shape as the steps go by; MOSS-Image's own advanced settings are greyed out in Edit
+- The picture under Start from image fills the width, its height following its shape
+- Progress bars on cards no longer show a clipped percentage
+- Model downloads show the busy indicator and how many files are complete; their progress no longer stalls while
+  large files arrive
+- Steps default to 30 (was 20)
+- Variation seed has a **Random** checkbox, like Seed; the seed row no longer shifts when Random is unticked
+- Adherence starts at 1; at 1 the negative prompt is greyed out, since it isn't used
+- LoRAs are filed under the model they fit (**Works with**); Choose LoRAs lists only those for the model in use
+- LoRAs have **Settings** (steps, adherence, schedule), read from their page or typed in the library, with
+  **Use its settings** under LoRAs, for fast (distilled) LoRAs; models' Settings can be typed too
+- Advanced options: **Schedule**, a fixed list of noise levels for LoRAs trained on one
+
 ## 1.0.0 (2026-11-15)
 
 - A layout set aside shows as a line under the prompt; one in use says **Layout in use:**

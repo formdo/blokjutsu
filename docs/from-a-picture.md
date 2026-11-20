@@ -9,6 +9,9 @@ nav_order: 4
 Switch on **Start from image**, then drop a picture on the box or click it to choose one. Or click **Use as
 input** on any picture in your history.
 
+This page is about **Repaint** (under **How**), where MOSS-Image redraws the picture from your prompt. To change a
+picture with an instruction instead ("make it night"), choose **Edit**: see [Editing pictures](editing.md).
+
 Under the picture: its original size, and these buttons.
 
 | button | does |

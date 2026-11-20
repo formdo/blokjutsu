@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import network
+from .blocks import BlockSpinner
 from ..fetch import CAPTION_CANDIDATES
 from ..settings import app_home, models_dir, tilde
 
@@ -39,7 +40,22 @@ class DownloadSpec:
 
 
 def model_spec(model, first_run=False, fake=False):
+    from ..models import family_of
     name = model.split("/")[-1]
+    if family_of(model) == "qwen-image":
+        return DownloadSpec(
+            "model", "Download model", f"Download {name}?",
+            "Edit changes pictures as the prompt instructs, with Qwen's editing model, which runs locally on this "
+            "Mac. It has to be downloaded once before the first edit." if first_run else
+            "Fetches any of the model's files that are missing or damaged; files you already have are skipped.",
+            (("What", f"{model}: editing model (20B), text encoder (Qwen2.5-VL-7B) and image decoder"),
+             ("Size", "About 58 GB; the exact total is shown when the download starts. Files you already have are "
+                      "skipped."),
+             ("License", "Apache 2.0"),
+             ("From", "huggingface.co, run by Hugging Face"),
+             ("Saved in", tilde(models_dir())),
+             ("Sent", network.WHAT_IS_SENT)),
+            ("fake", "4") if fake else ("model", model))
     if first_run:
         heading = f"Download {name}?"
         intro = ("Blokjutsu makes pictures with the MOSS-Image model, which runs locally on this Mac. "
@@ -175,13 +191,20 @@ class DownloadDialog(QDialog):
         v.addWidget(text_label(self.spec.heading.rstrip("?").replace("Download", "Downloading", 1) + "…",
                                bold=True, size=1.15))
         self.status = text_label("Starting…")
+        self.spinner = BlockSpinner()
+        self.spinner.hide()
+        busy = QHBoxLayout()
+        busy.setSpacing(12)
+        busy.addWidget(self.spinner, 0, Qt.AlignTop)
+        busy.addWidget(self.status, 1)
         self.bar = QProgressBar()
         self.bar.setRange(0, 0)
         self.bar.setTextVisible(False)
         self.detail = text_label("", muted=True)
         stop = QPushButton("Cancel")
         stop.clicked.connect(self.stop)
-        for w in (self.status, self.bar, self.detail):
+        v.addLayout(busy)
+        for w in (self.bar, self.detail):
             v.addWidget(w)
         v.addStretch(1)
         v.addLayout(buttons(stop))
@@ -228,7 +251,8 @@ class DownloadDialog(QDialog):
         self.bar.setRange(0, 0)
         self.status.setText("Connecting to huggingface.co…")
         self.detail.setText("")
-        self.started, self.first = time.monotonic(), None
+        self.started, self.first, self.files, self.bytes_text = time.monotonic(), None, None, ""
+        self.spinner.start()
         self.failure, self.buffer = None, b""
         self.details.clear()
         self._note(f"$ {' '.join(network.download_command(*self.spec.args)[1:])}")
@@ -260,6 +284,9 @@ class DownloadDialog(QDialog):
                 self.status.setText(rest)
             elif kind == "PROGRESS":
                 self._progress(*map(int, rest.split()))
+            elif kind == "FILES":
+                self.files = tuple(map(int, rest.split()))
+                self._show_detail()
             elif kind == "ERROR":
                 self.failure = rest
             if kind != "PROGRESS":
@@ -282,10 +309,18 @@ class DownloadDialog(QDialog):
         if now - t0 > 2 and done > d0:
             rate = (done - d0) / (now - t0)
             text += f" · {rate / 1e6:.0f} MB/s · about {clock((total - done) / rate)} left"
-        self.detail.setText(text)
+        self.bytes_text = text
+        self._show_detail()
+
+    def _show_detail(self):
+        """Bytes, speed and time left, and how many files are complete: large files can arrive all at once (Xet
+        transfers), so the file count moves even while the bytes stand still."""
+        files = f"{self.files[0]} of {self.files[1]} files" if self.files else ""
+        self.detail.setText(" · ".join(t for t in (self.bytes_text, files) if t))
 
     def _finished(self, code, status):
         self.process = None
+        self.spinner.stop()
         self.pages.setCurrentIndex(2)
         if code == 0 and status == QProcess.NormalExit:
             self.result_heading.setText("Download complete")
